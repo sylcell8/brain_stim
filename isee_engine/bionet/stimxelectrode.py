@@ -40,6 +40,7 @@ class StimXElectrode():
         if ( elwaveform_file.shape[0] != self.elnsites ):
 
             print "Warning: Number of waveforms and electrodes does not match"
+            print "Warning: Number of waveforms and electrodes does not match"
             print "INFO:", elwaveform_file.shape[0] , self.elnsites
 
         self.waveform = {}
