@@ -1,0 +1,6 @@
+-- Make changes, etc
+git add [files to add]
+git commit -m "fix typos"
+git pull --rebase
+-- Resolve any conflicts
+git push
