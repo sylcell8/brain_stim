@@ -1,0 +1,8 @@
+"model_id" "type_label" "model_name" "parameters"
+"virtual1" "e23" "iaf_psc_alpha" "iaf_psc_alpha-e23.json"
+"virtual2" "i23" "iaf_psc_alpha" "iaf_psc_alpha-i23.json"
+"virtual3" "e4" "iaf_psc_alpha" "iaf_psc_alpha-e4.json"
+"virtual4" "i4" "iaf_psc_alpha" "iaf_psc_alpha-i4.json"
+"virtual5" "eV1" "iaf_psc_alpha" "iaf_psc_alpha-eV1.json"
+"virtual6" "iV1" "iaf_psc_alpha" "iaf_psc_alpha-iV1.json"
+

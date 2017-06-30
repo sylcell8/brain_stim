@@ -1,0 +1,5 @@
+approx_order class dv model module norm p0 rank record tau_m tol update_method v_max v_min firing_rate nwb_file_name nwb_path
+None InternalPopulation 0.0001 Excitatory dipde.internals.internalpopulation inf "{""distribution"": ""delta"", ""weight"": 0.0}" 0.0 True 0.01 1e-12 approx 0.015 -0.03 None None None
+None InternalPopulation 0.0001 Inhibitory dipde.internals.internalpopulation inf "{""distribution"": ""delta"", ""weight"": 0.0}" 0.0 True 0.01 1e-12 approx 0.015 -0.03 None None None
+None ExternalPopulation None Background_100 dipde.internals.externalpopulation None None 0.0 False None None None None None 100 None None
+None NWBExternalPopulation None Background isee_engine.popnet.nwbexternalpopulation None None 0.0 False None None None None None None /data/mat/iSee_temp_shared/external_inputs/anton_flash_example/anton_flash_example.nwb /acquisition/firing_rate/0

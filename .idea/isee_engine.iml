@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$" />
+    <orderEntry type="jdk" jdkName="Python 2.7.13 (~/.conda/envs/isee_engine/bin/python)" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Sergey" />
+    <orderEntry type="module" module-name="Run_folder" />
+    <orderEntry type="module" module-name="Extra-1cell" />
+    <orderEntry type="module" module-name="MYPY" />
+    <orderEntry type="module" module-name="All_active_implementation" />
+    <orderEntry type="module" module-name="Run_folder" />
+    <orderEntry type="module" module-name="Sergey" />
+    <orderEntry type="module" module-name="Sergey" />
+    <orderEntry type="module" module-name="reobase" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="projectConfiguration" value="Nosetests" />
+    <option name="PROJECT_TEST_RUNNER" value="Nosetests" />
+  </component>
+</module>

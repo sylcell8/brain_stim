@@ -1,0 +1,13 @@
+id model layer
+0 Excitatory 2/3
+1 Excitatory 4
+2 Excitatory 5
+3 Excitatory 6
+4 Inhibitory 2/3
+5 Inhibitory 4
+6 Inhibitory 5
+7 Inhibitory 6
+8 Background 2/3
+9 Background 4
+10 Background 5
+11 Background 6

@@ -1,0 +1,54 @@
+import sys
+sys.path.append('/home/jungl/isee_engine/isee_engine') 
+import nwb
+from collections import defaultdict
+import h5py
+import numpy 
+
+def gen_recurrent(num,offset):
+	fc=h5py.File('/data/mat/iSee_temp_shared/con_rec/con_rec120.h5')
+	indptr=fc['indptr']
+	cell_size=len(indptr)-1
+	src_gids=fc['src_gids']
+	nsyns=fc['nsyns']
+	source_ids=[]
+	weight_scale=[]
+	target_ids=[]
+	delay_v=1.5 # arbitrary value
+	for xin in xrange(cell_size):
+		target_ids.append(xin)
+		source_ids.append(list(src_gids[indptr[xin]:indptr[xin+1]]))
+		weight_scale.append(list(nsyns[indptr[xin]:indptr[xin+1]]))
+	targets=defaultdict(list)
+	weights=defaultdict(list)
+	delays=defaultdict(list)
+	for xi,xin in enumerate(target_ids):
+		for yi, yin in enumerate(source_ids[xi]):
+		 	targets[yin].append(xin)
+			weights[yin].append(weight_scale[xi][yi])
+			delays[yin].append(delay_v)
+	presynaptic=[]	
+	params=[]
+	for xin in targets:
+		presynaptic.append(xin+offset)
+		temp_param={}
+		temp_array=numpy.array(targets[xin])*1.0+offset
+		temp_array.astype(float)
+		temp_param['target']=temp_array
+		temp_array=numpy.array(weights[xin])
+		temp_array.astype(float)
+		temp_param['weight']=temp_array
+		temp_array=numpy.array(delays[xin])
+		temp_array.astype(float)
+		temp_param['delay']=temp_array
+		params.append(temp_param)	
+		
+	
+	return presynaptic, params
+		
+					
+
+source, param=read_conns(120,1)
+print param
+
+

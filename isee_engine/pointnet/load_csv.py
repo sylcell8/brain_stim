@@ -1,0 +1,56 @@
+
+from collections import defaultdict
+import pandas as pd
+
+def load_params(node_name,model_name):
+	'''
+	load information regarding nodes and models from csv files
+
+	Parameters
+	----------
+	node_name: json file name for node information
+	model_name: json file name for neuron model information
+
+	Returns
+	-------
+	node_info: 2d array of node info read out from the json file
+	mode_info: 2d array of model info read out from the json file
+	dict_coordinates: dictionary of coordinates. keyword is the node_id and entries are the x,y and z coordinates.
+
+	'''
+	node=pd.read_csv(node_name,sep=' ',quotechar='"',quoting=0)
+	model=pd.read_csv(model_name,sep=' ',quotechar='"',quoting=0)
+	node_info=node.values
+	model_info=model.values
+	dict_coordinates=defaultdict(list) # In NEST, cells do not have intrinsic coordinates. So we have to make some virutial links between cells and coordinates
+	
+	for xin in xrange(len(node_info)): 
+		dict_coordinates[str(node_info[xin,0])]=[node_info[xin,2],node_info[xin,3],node_info[xin,4]]
+	return node_info,model_info,dict_coordinates 
+
+def load_conns(cnn_fn):
+	'''
+	load information regarding connectivity from csv files
+
+	Parameters
+	----------
+	cnn_fine: json file name for connection information
+
+	Returns
+	-------
+	connection dictionary 
+
+	'''
+	conns=pd.read_csv(cnn_fn,sep=' ',quotechar='"',quoting=0)
+	targets=conns.target_label
+	sources=conns.source_label
+	weights=conns.weight
+	delays=conns.delay
+
+	conns_mapping={}
+	for xin in xrange(len(targets)):
+		keys=sources[xin]+'-'+targets[xin]
+		conns_mapping[keys]=[weights[xin],delays[xin]]
+
+	
+	return conns_mapping

@@ -1,0 +1,8 @@
+"model_id" "level_of_detail" "type_label" "ei_label" "location_label" "morph_label" "cre_label" "morphology" "parameters"
+"471081668" "biophysical" "i4" "i" "L4" "point" "Pvalb-IRES" "/biophysical/inhibitory/Pvalb+/471081668/Pvalb-IRES-Cre_Ai14_IVSCC_-170929.04.01_396782215_m.swc" "/biophysical/inhibitory/Pvalb+/471081668/471081668_fit.json"
+"472306616" "biophysical" "i23" "i" "L23" "basket" "Pvalb-IRES" "biophysical/inhibitory/Pvalb+/472306616/Pvalb-IRES-Cre_Ai14_IVSCC_-176848.03.01.01_470528201_m.swc" "biophysical/inhibitory/Pvalb+/472306616/472306616_fit.json"
+"472451419" "biophysical" "e4" "e" "L4" "pyramid" "Nr5a1" "biophysical/excitatory/L4/472451419/Nr5a1-Cre_Ai14_IVSCC_-177334.05.01.01_471120787_m.swc" "biophysical/excitatory/L4/472451419/472451419_fit.json"
+"472912177" "biophysical" "i23" "i" "L23" "basket" "Pvalb-IRES" "biophysical/inhibitory/Pvalb+/472912177/Pvalb-IRES-Cre_Ai14_IVSCC_-176847.04.02.01_470522102_m.swc" "biophysical/inhibitory/Pvalb+/472912177/472912177_fit.json"
+"473863035" "biophysical" "e23" "e" "L23" "pyramid" "Nr5a1" "biophysical/excitatory/L4/473863035/Nr5a1-Cre_Ai14_IVSCC_-169250.03.02.01_471087815_m.swc" "biophysical/excitatory/L4/473863035/473863035_fit.json"
+"LIF_exc1" "intfire" "eV1" "e" "V1" "point" "Ntsr1" "null" "intfire/excitatory/IntFire1_exc_1.json"
+"LIF_inh1" "intfire" "iV1" "i" "V1" "point" "Pvalb-IRES" "null" "intfire/inhibitory/IntFire1_inh_1.json"

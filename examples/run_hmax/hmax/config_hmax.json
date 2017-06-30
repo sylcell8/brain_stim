@@ -1,0 +1,1 @@
+{"train_state_file":"hmax/train_state.json", "batch_size": 10, "image_dir" :"/Users/michaelbu/Data/SerreOlivaPoggioPNAS07/All", "nodes":"hmax/input/nodes.csv", "node_types": "hmax/input/node_types.csv"}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file:///local1/All_active_implementation/.idea/All_active_implementation.iml" filepath="/local1/All_active_implementation/.idea/All_active_implementation.iml" />
+      <module fileurl="file:///local1/Extra-1cell/.idea/Extra-1cell.iml" filepath="/local1/Extra-1cell/.idea/Extra-1cell.iml" />
+      <module fileurl="file:///local1/MYPY/.idea/MYPY.iml" filepath="/local1/MYPY/.idea/MYPY.iml" />
+      <module fileurl="file:///local1/temp/Taylor/Run_folder/.idea/Run_folder.iml" filepath="/local1/temp/Taylor/Run_folder/.idea/Run_folder.iml" />
+      <module fileurl="file:///local1/temp/Sergey/.idea/Sergey.iml" filepath="/local1/temp/Sergey/.idea/Sergey.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/isee_engine.iml" filepath="$PROJECT_DIR$/.idea/isee_engine.iml" />
+      <module fileurl="file:///local1/Data_cube/reobase/.idea/reobase.iml" filepath="/local1/Data_cube/reobase/.idea/reobase.iml" />
+    </modules>
+  </component>
+</project>

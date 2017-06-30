@@ -1,0 +1,4 @@
+model class module firing_rate rank record approx_order dv norm p0 tau_m tol update_method v_max v_min
+Background ExternalPopulation dipde.internals.externalpopulation 100 0.0 False None None None None None None None None None
+Excitatory InternalPopulation dipde.internals.internalpopulation None 0.0 True None 0.0001 inf "{""distribution"": ""delta"", ""weight"": 0.0}" 0.01 1e-12 approx 0.015 -0.03
+Inhibitory InternalPopulation dipde.internals.internalpopulation None 0.0 True None 0.0001 inf "{""distribution"": ""delta"", ""weight"": 0.0}" 0.01 1e-12 approx 0.015 -0.03

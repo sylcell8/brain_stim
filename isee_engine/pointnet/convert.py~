@@ -1,0 +1,31 @@
+import numpy
+def gen_recurrent_csv(num,offset):
+	conn_data=numpy.loadtxt('/home/jungl/isee_engine/isee_engine/pointnet/example_connections.dat')
+	target_ids=conn_data[:,0]
+	source_ids=conn_data[:,1]
+	weight_scale=conn_data[:,2]
+
+	pre=[]
+	cell_num=num
+	params=[]
+	for xin in xrange(cell_num):
+		pre.append(xin+offset)
+		ind=numpy.where(source_ids==xin)
+
+		temp_param={}
+		targets=target_ids[ind]+offset
+		weights=weight_scale[ind]
+		delays=numpy.ones(len(ind[0]))*1.5
+		targets.astype(float)
+		weights.astype(float)
+		temp_param['target']=targets
+		temp_param['weight']=weights*1
+		temp_param['delay']=delays
+		params.append(temp_param)
+		
+	return pre, params
+
+	
+	
+
+

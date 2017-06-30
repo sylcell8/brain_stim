@@ -1,0 +1,1 @@
+{"run": {"duration": 3000.0, "overwrite_output_dir": true, "dt": 0.1}, "manifest": {"models": "Models", "base_directory": "/home/jungl/isee_engine/examples/run_pointnet", "output": "Output", "input": "Input"},"block":true,"blocksize":1000.0, "node_data":"nest_node.csv", "model_data":"nest_model.csv","conn_data":"connection_types.csv"}

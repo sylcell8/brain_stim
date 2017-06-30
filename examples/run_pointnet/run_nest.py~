@@ -1,0 +1,19 @@
+import configure
+import sys
+'''
+Create NEST class, which is the network object, using the infomation from configure file.
+
+'''
+configure=configure.configdata()
+print configure.sim_dt
+sys.path.append('/home/jungl/isee_engine/isee_engine/pointnet') 
+import nest_construction 
+import load_csv
+nodes=configure.input_dir+'/'+configure.node_data
+models=configure.input_dir+'/'+configure.model_data
+conns=configure.input_dir+'/'+configure.conn_data
+node_info,model_info,dict_coordinates=load_csv.load_params(nodes,models) 
+conn_dict=load_csv.load_conns(conns) 
+net=nest_construction.network(dict_coordinates,node_info,model_info,conn_dictmconfigure)
+
+net.run(configure.sim_duration)
