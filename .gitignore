@@ -1,1 +1,4 @@
+# ignore any pycharm config files
 .idea/
+# don't save output files
+*.h5
