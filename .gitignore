@@ -1,4 +1,18 @@
-# ignore any pycharm config files
 .idea/
 # don't save output files
 *.h5
+.settings
+examples/run_popnet/checkpoint.json
+examples/example.nwb
+htmlcov
+examples/run_popnet/generate_model
+nicholasc
+*.egg-info
+.coverage
+*.pyc
+__pycache__
+.gitignore~
+.cache
+.pydevproject
+.project
+*.DS_Store
