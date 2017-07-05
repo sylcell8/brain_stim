@@ -4,7 +4,7 @@ import pandas as pd
 
 class StimXWaveform(object):
     '''
-    Extracellular Stimulating electrode
+    Waveform of extracellular stimulating electrode
     '''
 
     def __init__(self, conf):
@@ -25,6 +25,9 @@ class StimXWaveform(object):
 
 
 class WaveformDC(StimXWaveform):
+    '''
+    DC (step) waveform
+    '''
 
     def __init__(self, conf):
         StimXWaveform.__init__(self, conf)
@@ -36,6 +39,9 @@ class WaveformDC(StimXWaveform):
             return 0
 
 class WaveformSin(StimXWaveform):
+    '''
+    Sinusoidal waveform
+    '''
 
     def __init__(self, conf):
         StimXWaveform.__init__(self, conf)
