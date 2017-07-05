@@ -4,3 +4,9 @@ git commit -m "fix typos"
 git pull --rebase
 -- Resolve any conflicts
 git push
+
+
+-- If you have changes you don't want to commit, but want to pull latest
+git stash
+git pull --rebase
+git stash pop   # conflicts are possible
