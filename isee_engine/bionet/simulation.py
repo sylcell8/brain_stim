@@ -103,14 +103,9 @@ class Simulation(object):
 
         self.sel = StimXElectrode(self.conf)
 
-        self.sel.read_electrode_mesh()
-        self.sel.rotate_the_electrodes()
-        self.sel.place_the_electrodes()
-        # self.sel.interpolate_waveform(self.nsteps)
-
         for gid in self.gids['biophysical']:
             cell = self.net.cells[gid]
-            self.sel.transfer_resistance(gid, cell.seg_coords)
+            self.sel.set_transfer_resistance(gid, cell.seg_coords)
 
         self.fih = h.FInitializeHandler(0, self.net.set_ptr2e_extracellular)
 
@@ -264,10 +259,10 @@ class Simulation(object):
                 if self.conf["run"]['extra_stim']:
                     # if self.tstep == 1 :
                     #     start = time()
-                        self.sel.interpolate_waveform(self.tstep)
+                        self.sel.calculate_waveforms(self.tstep)
                         # end = time()
                         # print end - start
-                        vext_vec = self.sel.get_vext(self.tstep, gid)
+                        vext_vec = self.sel.get_vext(gid)
                         cell.set_e_extracellular(vext_vec)
 
                 if self.conf['run']['save_cell_vars'] and gid in self.gids['save_vars'] :

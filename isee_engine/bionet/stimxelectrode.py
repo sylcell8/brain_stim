@@ -1,80 +1,46 @@
 from isee_engine.bionet import util
-from time import time
+from isee_engine.bionet.stimxwaveform import waveform_factory
 import numpy as np
 import math
 import pandas as pd
 from neuron import h
-import csv
 
 class StimXElectrode():
     '''
     Extracellular Stimulating electrode
     '''
 
-    def __init__(self, conf):
+    def __init__(self, conf): # TODO doesn't need to know about entire conf file
         '''
         Create an array
         '''
-        self.conf = conf
+        self.stim_dir = conf["manifest"]["$STIM_DIR"] + "/"
 
         #Reading electrode position
-
-        stimelectrode_position_file = self.conf["extracellular_stimelectrode"]["electrode"]
-
+        stimelectrode_position_file = conf["extracellular_stimelectrode"]["position"]
         stimelectrode_position_df = pd.read_csv(stimelectrode_position_file, sep=' ')
 
         self.elmesh_file = stimelectrode_position_df['electrode_mesh_file']
-
-        self.elmesh_dir = self.conf["manifest"]["$STIM_DIR"]
-
         self.elpos = stimelectrode_position_df.as_matrix(columns=['pos_x', 'pos_y', 'pos_z']).T
-
         self.elrot = stimelectrode_position_df.as_matrix(columns=['rotation_x', 'rotation_y', 'rotation_z'])
-
         self.elnsites = self.elpos.shape[1] #Number of electrodes in electrode file
-
-        #Reading amplitudes
-
-        elwaveform_file =  stimelectrode_position_df["waveform"]
-
-        if ( elwaveform_file.shape[0] != self.elnsites ):
-
-            print "Warning: Number of waveforms and electrodes does not match"
-            print "INFO:", elwaveform_file.shape[0] , self.elnsites
-
-        self.waveform = {}
-        self.el_start_t = []
-
-        for el in range(self.elnsites):
-                wavefiledir = self.elmesh_dir + "/" + elwaveform_file[el]
-                self.waveform[el] = pd.read_csv(wavefiledir, sep='\t')
-                self.el_start_t.append(self.waveform[el]["time"][0])
-
-        # This is saving a lot of time if all the electrodes turn ON at the same time
-        homo = [(self.waveform[i].equals(self.waveform[i + 1])) for i in range(self.elnsites-1)]
-        self.homowave = all(x == True for x in homo)
-
-        if (self.homowave):
-            print "INFO: All", self.elnsites, "electrodes are homogeneous"
-        else:
-            print "INFO: All", self.elnsites, "electrodes are NON-homogeneous"
-
+        self.waveform = waveform_factory(conf)
 
         self.trans_X = {}  # mapping segment coordinates
-
-        self.interpolated_waveform_amplitude = []
-
+        self.waveform_amplitude = []
         self.el_mesh = {}
-
         self.el_mesh_size = []
 
+        self.read_electrode_mesh()
+        self.rotate_the_electrodes()
+        self.place_the_electrodes()
 
 
     def read_electrode_mesh(self):
 
         el_counter = 0
         for file in self.elmesh_file:
-            mesh = pd.read_csv(self.elmesh_dir + "/"+ file, sep=" ")
+            mesh = pd.read_csv(self.stim_dir + file, sep=" ")
             mesh_size = mesh.shape[0]
             self.el_mesh_size.append(mesh_size)
 
@@ -83,7 +49,6 @@ class StimXElectrode():
             self.el_mesh[el_counter][1] = mesh['y_pos']
             self.el_mesh[el_counter][2] = mesh['z_pos']
             el_counter += 1
-
 
 
     def place_the_electrodes(self):
@@ -101,11 +66,9 @@ class StimXElectrode():
 
 
 
-
     def rotate_the_electrodes(self):
 
         for el in range(self.elnsites):
-
 
             phi_x = self.elrot[el][0]
             phi_y = self.elrot[el][1]
@@ -122,17 +85,12 @@ class StimXElectrode():
 
 
 
-
-
-    def transfer_resistance(self, gid, seg_coords):
+    def set_transfer_resistance(self, gid, seg_coords):
 
         rho = 35.4  # ohm cm
-
         r05 = seg_coords['p05']
-
-        self.nseg = r05.shape[1]
-
-        cell_map = np.zeros((self.elnsites, self.nseg))
+        nseg = r05.shape[1]
+        cell_map = np.zeros((self.elnsites, nseg))
 
         for el in xrange(self.elnsites):
 
@@ -141,55 +99,27 @@ class StimXElectrode():
             for k in range(mesh_size):
 
                 rel = np.expand_dims(self.el_mesh[el][:,k], axis=1)
-
                 rel_05 = rel - r05
-
                 r2 = np.einsum('ij,ij->j', rel_05, rel_05)
-
                 r = np.sqrt(r2)
-
                 cell_map[el, :] += 1. / r
 
         cell_map *= (rho / (4 * math.pi)) * 0.01
-
         self.trans_X[gid] = cell_map
 
 
-    def interpolate_waveform(self, tstep):
 
-        self.tstep = tstep
-
-        simulation_time = h.dt * self.tstep
-
-        self.interpolated_waveform_amplitude = np.zeros((self.elnsites))
-
-        #This is saving huge amount of time
-        ON_electrodes = [i for i, x in enumerate(self.el_start_t) if simulation_time >= x]
-
-        # If all data frames are equal then we do the interpolation only once
-        if (self.homowave):
-            first_ON_electrode = ON_electrodes[0]
-            inter = np.interp(simulation_time,
-                              self.waveform[first_ON_electrode]["time"], self.waveform[first_ON_electrode]["amplitude"])
-            for el in ON_electrodes:
-                self.interpolated_waveform_amplitude[el] = inter
-
-        else:
-            for el in ON_electrodes:
-                self.interpolated_waveform_amplitude[el] = \
-                    np.interp(simulation_time, self.waveform[el]["time"], self.waveform[el]["amplitude"])
+    def calculate_waveforms(self, tstep):
+        simulation_time = h.dt * tstep
+        # copies waveform elnsites times (homogeneous)
+        self.waveform_amplitude = np.zeros(self.elnsites) + self.waveform.calculate(simulation_time)
 
 
 
+    def get_vext(self, gid):
 
-    def get_vext(self, tstep, gid):
-
-          self.tstep = tstep
-
-          waveform_per_mesh = np.divide(self.interpolated_waveform_amplitude, self.el_mesh_size)
-
+          waveform_per_mesh = np.divide(self.waveform_amplitude, self.el_mesh_size)
           v_extracellular = np.dot(waveform_per_mesh, self.trans_X[gid]) * 1E6
-
           vext_vec = h.Vector(v_extracellular)
 
           return vext_vec
