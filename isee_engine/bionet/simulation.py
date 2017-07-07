@@ -109,6 +109,8 @@ class Simulation(object):
 
         self.fih = h.FInitializeHandler(0, self.net.set_ptr2e_extracellular)
 
+        bionet_io.print2log0("Created extracellular stimulation electrode(s): " + str(self.sel.elnsites) + " electrodes created")
+
 
     def attach_current_clamp(self):  # Fahimeh
 
