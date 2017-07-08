@@ -2,10 +2,17 @@ import numpy as np
 import pandas as pd
 import json
 
-
-class StimXWaveform(object):
+class BaseWaveform(object):
     """
-    Waveform of extracellular stimulating electrode
+    Abstraction of waveform class to ensure calculate method is implemented
+    """
+
+    def calculate(self, simulation_time):
+        raise NotImplementedError("Implement specific waveform calculation")
+
+class BaseWaveformType(object):
+    """
+    Specific waveform type
     """
 
     def __init__(self, waveform_config):
@@ -17,17 +24,15 @@ class StimXWaveform(object):
         stop_time = self.delay + self.duration
         return self.delay < simulation_time < stop_time
 
-    def calculate(self, simulation_time):
-        raise NotImplementedError("Implement specific waveform calculation")
 
 
-class WaveformDC(StimXWaveform):
+class WaveformTypeDC(BaseWaveformType, BaseWaveform):
     """
     DC (step) waveform
     """
 
     def __init__(self, waveform_config):
-        StimXWaveform.__init__(self, waveform_config)
+        super(WaveformTypeDC, self).__init__(waveform_config)
 
     def calculate(self, t): # TODO better name
         if self.is_active(t):
@@ -35,13 +40,13 @@ class WaveformDC(StimXWaveform):
         else:
             return 0
 
-class WaveformSin(StimXWaveform):
+class WaveformTypeSin(BaseWaveformType, BaseWaveform):
     """
     Sinusoidal waveform
     """
 
     def __init__(self, waveform_config):
-        StimXWaveform.__init__(self, waveform_config)
+        super(WaveformTypeSin, self).__init__(waveform_config)
         self.freq         = float(waveform_config["freq"])   # Hz
         self.phase_offset = float(waveform_config.get("phase", 0))  # radians, optional
         self.amp_offset   = float(waveform_config.get("offset", 0)) # units? mA? optional
@@ -55,7 +60,8 @@ class WaveformSin(StimXWaveform):
         else:
             return 0
 
-class WaveformCustom:
+
+class WaveformCustom(BaseWaveform):
     """
     Custom waveform defined by csv file
     """
@@ -67,18 +73,32 @@ class WaveformCustom:
         return np.interp(t, self.definition["time"], self.definition["amplitude"])
 
 
+class ComplexWaveform(BaseWaveform):
+    """
+    Superposition of simple waveforms
+    """
+    def __init__(self, el_collection):
+        self.electrodes = el_collection
+
+    def calculate(self, t):
+        val = 0
+        for el in self.electrodes:
+            val += el.calculate(t)
+
+        return val
+
 
 # mapping from 'shape' code to subclass, always lowercase
 shape_classes = {
-    'dc': WaveformDC,
-    'sin': WaveformSin,
+    'dc': WaveformTypeDC,
+    'sin': WaveformTypeSin,
 }
 
-def waveform_factory(conf):
+def stimx_waveform_factory(conf):
     """
     Factory to create correct waveform class based on conf.
     Supports json config in conf as well as string pointer to a file.
-    :rtype: StimXWaveform
+    :rtype: BaseWaveform
     """
     waveform_conf = conf["extracellular_stimelectrode"]["waveform"]
 
@@ -103,7 +123,3 @@ def waveform_factory(conf):
     Constructor = shape_classes[shape_key]
 
     return Constructor(waveform_conf)
-
-
-
-

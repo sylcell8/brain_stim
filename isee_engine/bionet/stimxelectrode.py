@@ -1,5 +1,5 @@
 from isee_engine.bionet import util
-from isee_engine.bionet.stimxwaveform import waveform_factory
+from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 import numpy as np
 import math
 import pandas as pd
@@ -24,7 +24,7 @@ class StimXElectrode():
         self.elpos = stimelectrode_position_df.as_matrix(columns=['pos_x', 'pos_y', 'pos_z']).T
         self.elrot = stimelectrode_position_df.as_matrix(columns=['rotation_x', 'rotation_y', 'rotation_z'])
         self.elnsites = self.elpos.shape[1] #Number of electrodes in electrode file
-        self.waveform = waveform_factory(conf)
+        self.waveform = stimx_waveform_factory(conf)
 
         self.trans_X = {}  # mapping segment coordinates
         self.waveform_amplitude = []
