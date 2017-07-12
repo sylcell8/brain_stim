@@ -95,8 +95,16 @@ def copy(conf):
     print fullpath
     shutil.copy(fullpath,conf["manifest"]["$OUTPUT_DIR"])
 
-    
 
+def print_resolved(conf):
 
+    '''
+    Print the resolved config file to output directory
+    '''
+    name = conf['config_file_name'].split('.')
+    name[-2] = name[-2] + "_resolved" # place just before extension
+    file_name = '.'.join(name)
+    fullpath = "/".join([conf["manifest"]["$OUTPUT_DIR"], file_name])
 
-
+    with open(fullpath, 'w') as fp:
+        json.dump(conf, fp, indent=4, separators=(',', ': '))  # print pretty

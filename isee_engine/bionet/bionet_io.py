@@ -317,6 +317,7 @@ def setup_work_dir(conf):
             make_output_dirs(conf)
             create_log(conf)    
             config.copy(conf)
+            config.print_resolved(conf)
 
         pc.barrier()
         
