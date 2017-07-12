@@ -158,6 +158,7 @@ def make_output_dirs(conf):
     os.makedirs(conf["manifest"]["$OUTPUT_DIR"])
     os.makedirs(conf["output"]["cell_vars_dir"])
     os.makedirs(conf["output"]["state_dir"])
+    os.makedirs(conf["output"]["electrodes_dir"])
 
 
 
@@ -174,10 +175,29 @@ def create_output_files(conf,gids):
         create_ecp_file(conf)
 
     if conf["run"]["save_cell_vars"]:
-        create_cell_vars_files(conf,gids)        
+        create_cell_vars_files(conf,gids)
+
+    if conf["run"]["extra_stim"]:
+        copy_electrode_files(conf)
                 
     create_spike_file(conf,gids) # a single file including all gids
-    
+
+
+def copy_electrode_files(conf):
+    '''
+    Copy electrode data to output directory
+    '''
+    el_dir = conf["output"]["electrodes_dir"]
+    pos_path = conf["extracellular_stimelectrode"]["position"]
+    pos_df = pd.read_csv(pos_path, sep=' ')
+    mesh_files = pos_df["electrode_mesh_file"]
+
+    shutil.copy(pos_path, el_dir)
+
+    for f in mesh_files:
+        mesh_path = "/".join([conf["manifest"]["$STIM_DIR"], f])
+        shutil.copy(mesh_path, el_dir)
+
 
 def create_ecp_file(conf):
 

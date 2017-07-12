@@ -74,7 +74,7 @@ class Simulation(object):
             self.set_ecp_recording()
 
         if not(self.conf["run"]["start_from_state"]): # if starting from a new initial state
-            bionet_io.create_output_files(self.conf, self.gids);
+            bionet_io.create_output_files(self.conf, self.gids)
     
         if self.conf["run"]["start_from_state"]: # if starting from a new initial state
             bionet_io.extend_output_files(self.gids)
