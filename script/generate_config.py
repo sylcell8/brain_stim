@@ -26,20 +26,20 @@ def dc_folder_format(key, trial=0):
     parts = [key, 'tr' + str(trial)]
     return '_'.join(parts)
 
-def set_config(conf_data, el_filled, cell_gid, amp, stim_type='dc'):
-    cell_gid = str(cell_gid)
+def set_config(conf_data, el_filled, cell, amp, stim_type='dc'):
+    cell = str(cell)
     run_folder = dc_folder_format(get_dc_key(el_filled, amp)) # TODO all trials are 0 eh??
     print run_folder
 
-    conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell_gid + "_" + str(el) + ".csv"
+    conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell + "_" + str(el_filled) + ".csv"
     conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
     # Note: output dir doesn't include current sign
-    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/outputs", stim_type, cell_gid, run_folder])
+    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/outputs", stim_type, cell, run_folder])
 
     return conf_data
 
-def generate_config(config_base, file_name_tpl, dir, el, *args):
-    with open(config_base, 'r') as fp:
+def generate_config(base, file_name_tpl, out_dir, el, *args):
+    with open(base, 'r') as fp:
         base_data = json.load(fp)
 
 
@@ -48,7 +48,7 @@ def generate_config(config_base, file_name_tpl, dir, el, *args):
 
     filename = file_name_tpl.format(el_filled)
 
-    with open(dir + '/' + filename, 'w') as fp:
+    with open(out_dir + '/' + filename, 'w') as fp:
         json.dump(data, fp, indent=4, separators=(',', ': ')) # print pretty
 
     return filename
@@ -73,7 +73,7 @@ if os.path.isdir(confs_folder):
 
 os.mkdir(confs_folder) # placed in current dir
 
-for el in range(number_el):
-    generate_config(config_base, 'config_el{}.json', confs_folder, el, cell_gid, current)
+for electrode in range(number_el):
+    generate_config(config_base, 'config_el{}.json', confs_folder, electrode, cell_gid, current)
 
 print '~~ DONE! ~~'
