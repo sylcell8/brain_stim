@@ -35,6 +35,7 @@ def build(config_file):
 
     config_file_basename = os.path.basename(config_file)
     conf["config_file_name"] = config_file_basename
+    conf["config_file_fullpath"] = os.path.abspath(config_file)
 
     manifest = build_manifest(conf)    
     recursive_insert(conf,manifest)
@@ -89,11 +90,9 @@ def copy(conf):
     Copy config to output directory
     '''
     
-    
-    fullpath = "/".join([conf["manifest"]["$RUN_DIR"],conf['config_file_name']])
-
+    fullpath = conf['config_file_fullpath']
     print fullpath
-    shutil.copy(fullpath,conf["manifest"]["$OUTPUT_DIR"])
+    shutil.copy(fullpath, conf["manifest"]["$OUTPUT_DIR"])
 
 
 def print_resolved(conf):
