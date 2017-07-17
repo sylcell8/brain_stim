@@ -34,7 +34,7 @@ def set_config(conf_data, el_filled, cell_gid, amp, stim_type='dc'):
     conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell_gid + "_" + str(el) + ".csv"
     conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
     # Note: output dir doesn't include current sign
-    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/output", stim_type, cell_gid, run_folder])
+    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/outputs", stim_type, cell_gid, run_folder])
 
     return conf_data
 
