@@ -1,9 +1,6 @@
 import sys,os
-import math
-import json
-import copy
-
 import itertools
+from generate_config import *
 
 from run_sim import run
 
@@ -20,40 +17,6 @@ config_base = str(sys_args[1])
 #################################################
 
 config_file_name = "config.json" # All config files have same name
-
-def get_dc_key(elnum_filled, amp):
-    parts = ['el' + elnum_filled, "amp{0:.0f}".format(math.fabs(amp * 1000.))]
-    return '_'.join(parts)
-
-def dc_folder_format(key, trial=0):
-    parts = [key, 'tr' + str(trial)]
-    return '_'.join(parts)
-
-def set_config(conf_data, el, cell_gid, amp, stim_type='dc'):
-    cell_gid = str(cell_gid)
-    elnum_filled = str(el).zfill(3)
-    run_folder = dc_folder_format(get_dc_key(elnum_filled, amp)) # TODO all trials are 0 eh??
-    print run_folder
-
-    # file_name = "config_file_el" + elnum_filled + ".json"
-    conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell_gid + "_" + str(el) + ".csv"
-    conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
-    # Note: output dir doesn't include current sign
-    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/output", stim_type, cell_gid, run_folder])
-
-    return conf_data
-
-def generate_config(config_base, *args):
-    with open(config_base, 'r') as fp:
-        base_data = json.load(fp)
-
-    # For whatever conditions
-    data = set_config(copy.deepcopy(base_data), *args)
-
-    with open(config_file_name, 'w') as fp:
-        json.dump(data, fp, indent=4, separators=(',', ': ')) # print pretty
-
-    return config_file_name # TODO this doesn't make sense the moment
 
 
 #################################################
@@ -85,6 +48,7 @@ else:
 #
 #################################################
 
+## TEST config
 batch_dc_conf = {
     'els'  : range(5),
     'cells': [313862022, 314831019],
@@ -99,7 +63,8 @@ with open(record_name, "a") as record:
         trial = 0 # TODO hook this up
         # print combination, config_base
 
-        config_file = generate_config(config_base, el, cell, amp)
+## TODO not ready. generate config dir not set and run command not finalized
+        # config_file = generate_config(config_base, config_file_name, dir, el, cell, amp)
 
     # for config_file in conf_file_names:
     #
