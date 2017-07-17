@@ -179,6 +179,7 @@ def create_output_files(conf,gids):
 
     if conf["run"]["extra_stim"]:
         copy_electrode_files(conf)
+        copy_cell_files(conf)
                 
     create_spike_file(conf,gids) # a single file including all gids
 
@@ -198,6 +199,14 @@ def copy_electrode_files(conf):
         mesh_path = "/".join([conf["manifest"]["$STIM_DIR"], f])
         shutil.copy(mesh_path, el_dir)
 
+def copy_cell_files(conf):
+    '''
+    Copy electrode data to output directory
+    '''
+    out_dir = conf["manifest"]["$OUTPUT_DIR"]
+    file_path = conf["internal"]["cells"]
+
+    shutil.copy(file_path, out_dir)
 
 def create_ecp_file(conf):
 
@@ -351,10 +360,10 @@ def save_block2disk(conf,data_block,time_step_interval):
     save data in blocks to hdf5 
     '''
 
-    save_ecp(conf,data_block,time_step_interval)
+    # save_ecp(conf,data_block,time_step_interval)
     save_cell_vars(conf,data_block,time_step_interval)
-    save_spikes2h5(conf,data_block)
-    save_spikes2ascii(conf,data_block)
+    # save_spikes2h5(conf,data_block)
+    # save_spikes2ascii(conf,data_block)
     
 
 def save_spikes2h5(conf,data_block):
@@ -432,22 +441,25 @@ def save_cell_vars(conf,data_block, time_step_interval):
         with h5py.File(ofname,'a') as h5:
 
             h5.attrs["tsave"] = data_block["tsave"] # update tsave
+
             h5["vm"][itstart:itend] = cell_data_block['vm'][0:itend-itstart];
             cell_data_block['vm'][:] = 0.0
-
     
-            h5["cai"][itstart:itend] = cell_data_block['cai'][0:itend-itstart];
+            # h5["cai"][itstart:itend] = cell_data_block['cai'][0:itend-itstart];
+            # cell_data_block['cai'][:] = 0.0
+
             h5["im"][itstart:itend] = cell_data_block['im'][0:itend-itstart];
-            cell_data_block['cai'][:] = 0.0
             cell_data_block['im'][:] = 0.0
 
-            # if conf["run"]["extra_stim"]:
             h5["vext"][itstart:itend] = cell_data_block['vext'][0:itend-itstart];
-            h5["EX"][itstart:itend] = cell_data_block['EX'][0:itend-itstart];
             cell_data_block['vext'][:] = 0.0
-            cell_data_block['EX'][:] = 0.0
 
+            # h5["EX"][itstart:itend] = cell_data_block['EX'][0:itend-itstart];
+            # cell_data_block['EX'][:] = 0.0
 
+            # if "ecp" in cell_data_block.keys():
+            #     h5["ecp"][itstart:itend,:] = cell_data_block['ecp'][0:itend-itstart,:];
+            #     cell_data_block['ecp'][:] = 0.0
 
             spikes = data_block["spikes"]
             nspikes_saved = h5["spikes"].shape[0]   # find number of spikes
@@ -455,10 +467,7 @@ def save_cell_vars(conf,data_block, time_step_interval):
             nspikes = nspikes_saved+nspikes_add     # total number of spikes
             h5["spikes"].resize((nspikes,))         # resize the dataset
             h5["spikes"][nspikes_saved:nspikes] = np.array(spikes[gid]); # save hocVector as a numpy arrray
-    
-            if "ecp" in cell_data_block.keys():
-                h5["ecp"][itstart:itend,:] = cell_data_block['ecp'][0:itend-itstart,:];            
-                cell_data_block['ecp'][:] = 0.0
+
 
 
 
