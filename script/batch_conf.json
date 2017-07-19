@@ -1,0 +1,7 @@
+// TODO would like to create a script to read in this configuration instead of taking all args as command line args like in the current script
+{
+    "el_range"  : [0,1000],
+//    "cells": [313862022, 314831019],
+    "amps" : [-0.01, -0.02, -0.03],
+    "trial"  : 0
+}

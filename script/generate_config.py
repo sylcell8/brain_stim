@@ -1,79 +1,36 @@
-import sys,os
-import json
-import math
-import shutil
-import copy
+import argparse
+from generate_utils import *
 
-sys_args = list(sys.argv) # command line arguments
-
-config_base = str(sys_args[1]) # default values for config
-number_el = int(sys_args[2])   # number of electrode position files you wish to use
-cell_gid = int(sys_args[3])
+# args
+parser = argparse.ArgumentParser()
+parser.add_argument("config_base", help="config file to use as template")
+parser.add_argument("number_el", help="number of electrodes to use, starting from 0 up to number_el", type=int)
+parser.add_argument("cell_gid", help="cell gid for all config files")
+# optional
+parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+parser.add_argument("-t", "--trial", type=int, default=0)
+sargs = parser.parse_args()
 
 confs_folder = 'confs'
+config_base = sargs.config_base
+batch_config = {
+    "el_range": [0, sargs.number_el],
+    "cell_gid": sargs.cell_gid,
+    "amps": [-0.01, -0.02, -0.03],
+    "trial": sargs.trial
+}
+
+print sargs
 
 #################################################
 #
-#     Functions
+# Generate set of files according to batch_config
 #
 #################################################
 
-def get_dc_key(elnum_filled, amp):
-    parts = ['el' + elnum_filled, "amp{0:.0f}".format(math.fabs(amp * 1000.))]
-    return '_'.join(parts)
+print 'Using current amplitude(s): {}'.format(batch_config['amps'])
 
-def dc_folder_format(key, trial=0):
-    parts = [key, 'tr' + str(trial)]
-    return '_'.join(parts)
+prep_confs_folder(confs_folder)
+generate_config_set(config_base, batch_config, confs_folder, verbose=sargs.verbose)
 
-def set_config(conf_data, el_filled, cell, amp, stim_type='dc'):
-    cell = str(cell)
-    run_folder = dc_folder_format(get_dc_key(el_filled, amp)) # TODO all trials are 0 eh??
-    print run_folder
-
-    conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell + "_" + str(el_filled) + ".csv"
-    conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
-    # Note: output dir doesn't include current sign
-    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/outputs", stim_type, cell, run_folder])
-
-    return conf_data
-
-def generate_config(base, file_name_tpl, out_dir, el, *args):
-    with open(base, 'r') as fp:
-        base_data = json.load(fp)
-
-
-    el_filled = str(el).zfill(4)
-    data = set_config(copy.deepcopy(base_data), el_filled, *args)
-
-    filename = file_name_tpl.format(el_filled)
-
-    with open(out_dir + '/' + filename, 'w') as fp:
-        json.dump(data, fp, indent=4, separators=(',', ': ')) # print pretty
-
-    return filename
-
-#################################################
-#
-#     Generate set of files in ./confs_folder
-#
-#################################################
-
-
-with open(config_base, 'r') as fp:
-    data = json.load(fp)
-
-# current gotten from config base -- given in milliamps ... float(args[3]) if len(args) > 30000 else
-current = data["extracellular_stimelectrode"]["waveform"]["amp"]
-print 'Using current amplitude from base config:' + str(current)
-
-if os.path.isdir(confs_folder):
-    # clear it
-    shutil.rmtree(confs_folder)
-
-os.mkdir(confs_folder) # placed in current dir
-
-for electrode in range(number_el):
-    generate_config(config_base, 'config_el{}.json', confs_folder, electrode, cell_gid, current)
-
-print '~~ DONE! ~~'
+print '~~ Done! ~~'
