@@ -65,7 +65,7 @@ batch_dc_conf = {
 #         (el, cell, amp) = combination
 #         trial = 0 # TODO hook this up
 #         # print combination, config_base
-# 
+#
 # ## TODO not ready. generate config dir not set and run command not finalized
 #         # config_file = generate_config(config_base, config_file_name, dir, el, cell, amp)
 #

@@ -4,11 +4,11 @@ from generate_utils import *
 # args
 parser = argparse.ArgumentParser()
 parser.add_argument("config_base", help="config file to use as template")
-parser.add_argument("number_el", help="number of electrodes to use, starting from 0 up to number_el", type=int)
+parser.add_argument("number_el", help="number of electrodes to use, from 0 to number_el", type=int)
 parser.add_argument("cell_gid", help="cell gid for all config files")
 # optional
 parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
-parser.add_argument("-t", "--trial", type=int, default=0)
+parser.add_argument("-t", "--trial", help="trial number for output folders, default 0", type=int, default=0)
 sargs = parser.parse_args()
 
 confs_folder = 'confs'
