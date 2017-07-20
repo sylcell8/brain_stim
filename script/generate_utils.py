@@ -15,7 +15,7 @@ def dc_folder_format(key, trial):
     parts = [key, 'tr' + str(trial)]
     return '_'.join(parts)
 
-def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'): # TODO all trials are 0 eh??
+def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
     el = fill_el(el)
     cell = str(cell)
     run_folder = dc_folder_format(get_dc_key(el, amp), trial)

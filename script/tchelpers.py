@@ -1,0 +1,253 @@
+import numpy as np
+import matplotlib as mlb
+import matplotlib.pyplot as plt
+import h5py
+import json
+from allensdk.core.cell_types_cache import CellTypesCache
+
+## NOTE THIS ASSSUMES 3 CELL NETWORK, OR THAT YOU ONLY CARE ABOUT FIRST 3 CELLS
+_cells = np.array([0, 1, 2])
+
+
+#################################################
+#
+#     Customizing plot params
+#
+#################################################
+
+# size: Either an relative value of 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large' 
+# or an absolute font size, e.g., 12
+# default_plot_config = {
+#     'title_fontsize':14,
+#     'tick_fontsize':2,
+#     'axis_fontsize':2
+# }
+
+# global config
+mlb.rcParams.update({
+    'figure.titlesize'    : 'xx-large',
+    'axes.titlesize'      : 'x-large',   # fontsize of the axes title
+    'axes.labelsize'      : 'large',  # fontsize of the x any y labels
+    # 'xtick.labelsize'     : 'medium',
+    # 'ytick.labelsize'     : 'medium',
+    # 'legend.fontsize'     : 'medium',
+})
+
+# Consider for a single plot...
+# with plt.rc_context({"axes.grid": True, "grid.linewidth": 0.75}):
+#     f, ax = plt.subplots()  # Will make a figure with a grid
+#     ax.plot(x, y)
+
+
+#################################################
+#
+#     Utils
+#
+#################################################
+
+def get_cv_files(output, cells=_cells):
+    cv_dir = output + 'cellvars/'
+    return map(lambda c: h5py.File(cv_dir + str(c) + '.h5', 'r'), cells)
+
+def get_spikes_file(output):
+    return h5py.File(output + 'spikes.h5', 'r')
+
+def get_json_from_file(path):
+    with open(path, 'r') as f:
+        return json.load(f)
+        
+def cat_folders(*args):
+    '/'.join(*args)
+
+#################################################
+#
+#     Plot helpers
+#
+#################################################
+
+def calc_xticks(tlimits,dt,ticksEvery):
+    xtick_location = np.arange(tlimits[0], tlimits[1] + 1, ticksEvery)
+    xtick_labels = map(lambda t: str(t / 1000.), xtick_location)
+    return xtick_location, xtick_labels
+
+
+def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 7),
+                                ticks_every=500, show_legend=True, **kwargs):
+    cvfiles = get_cv_files(output)
+    tstop = cvfiles[0].attrs['tstop']
+    dt = cvfiles[0].attrs['dt']
+
+    if not ax:
+        plt.figure(figsize=size)
+        ax = plt.subplot(111)
+
+    for i, f in enumerate(cvfiles):
+        if cell is None or cell is i:
+            ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, label='cell_' + str(i))
+
+    xtick_location, xtick_labels = calc_xticks([0, tstop], dt, ticks_every)
+    ax.set_xticks(xtick_location)
+    ax.set_xticklabels(xtick_labels)
+    
+    if show_legend:
+        ax.legend(loc='upper left')
+    return ax
+
+def get_spikes_raster_plot(output, size=None, ax=None, ticksEvery=500, **kwargs):
+
+    if not ax:
+        plt.figure(figsize=size)
+        ax = plt.subplot(111)
+
+    f_spikes = get_spikes_file(output)
+    tstart = f_spikes.attrs['tstart'] # ms
+    tstop = f_spikes.attrs['tstop'] # ms
+    cells = [int(i) for i in f_spikes.keys()]
+
+    for c, times in f_spikes.items():
+        n = times.size
+        ids = [int(c)] * n
+        ax.scatter(times.value.tolist(), ids, s=16, lw=0)
+
+    ax.margins(0.05, 0.50)
+    ax.set_xlabel('Time (s)')
+
+    xtick_location, xtick_labels = calc_xticks([0, tstop],1,ticksEvery)
+    ax.set_xticks(xtick_location)
+    ax.set_xticklabels(xtick_labels)
+    ax.set_yticks(cells)
+    ax.set_yticklabels(['cell_' + str(c) for c in cells])
+
+    if all([x.value.size == 0 for x in f_spikes.values()]):
+        plt.text(tstart+(1./3)*(tstop-tstart), 0.9, 'No spikes recorded', fontsize=15)
+
+    return ax
+
+def get_cell_morphology_plot(cell_id, size=(10,10), ax=None):
+    # from allensdk.core.swc import Marker
+    # import pprint
+
+    if not ax:
+        plt.figure(figsize=size)
+        ax = plt.subplot(111)
+
+    ctc = CellTypesCache(manifest_file='cell_types/manifest.json')
+    morphology = ctc.get_reconstruction(cell_id)
+    # markers = ctc.get_reconstruction_markers(cell_id)
+
+    for n in morphology.compartment_list:
+        for c in morphology.children_of(n):
+            ax.plot([n['x'], c['x']], [n['y'], c['y']], color='black')
+
+    return ax
+
+
+#################################################
+#
+#     Plots
+#
+#################################################
+
+
+def plot_vm(output, **kwargs):
+    ax = get_cellvar_timeseries_plot(output, 'vm', **kwargs)
+    ax.set_title('Membrane Voltage')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('$V_m$ (mV)')
+    plt.show()
+
+
+def plot_vext(output, **kwargs):
+    ax = get_cellvar_timeseries_plot(output, 'vext', **kwargs)
+    ax.set_title('External Voltage')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('$V_{ext}$ (mV)')
+    plt.show()
+
+def plot_im(output, **kwargs):
+    ax = get_cellvar_timeseries_plot(output, 'im', **kwargs)
+    ax.set_title('Membrane Current')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('$I_m$ (mA)')
+    plt.show()
+
+def plot_vext_vm_tiles(outputs, **kwargs):
+    if type(outputs) is str:
+        outputs = [outputs]
+
+    fig, axarr = plt.subplots(2,len(outputs), sharex='col', sharey='row', figsize=(13,7))
+
+    kwargs['size'] = None
+    kwargs['show_legend'] = False
+
+    for i,fname in enumerate(outputs):
+        if len(axarr.shape) is 1:
+            (ax_vext, ax_vm) = (axarr[0], axarr[1])
+        else:
+            (ax_vext, ax_vm) = (axarr[0][i], axarr[1][i])
+
+        kwargs['ax'] = ax_vext
+        get_cellvar_timeseries_plot(fname, 'vext', **kwargs)
+        ax_vext.set_xlabel('Time (s)')
+        ax_vext.set_ylabel('$V_{ext}$ (mV)')
+
+        kwargs['ax'] = ax_vm
+        get_cellvar_timeseries_plot(fname, 'vm', **kwargs)
+        ax_vm.set_xlabel('Time (s)')
+        ax_vm.set_ylabel('$V_m$ (mV)')
+
+    fig.suptitle(kwargs['title'])
+
+    plt.show()
+
+
+def plot_vm_spikes_raster(output, **kwargs):
+
+    size = (13, 9)
+
+    fig, (ax_vm, ax_spikes) = plt.subplots(2, 1, sharex='col', gridspec_kw={'height_ratios': [5, 1]}, figsize=size)
+
+    ax_vm = get_cellvar_timeseries_plot(output, 'vm', ax=ax_vm, **kwargs)
+    ax_vm.set_title('Membrane Voltage')
+    ax_vm.set_ylabel('$V_m$ (mV)')
+    # ax_vm.set_xlabel('Time (s)')
+
+    kwargs['ax'] = ax_spikes
+    ax_spikes = get_spikes_raster_plot(output, **kwargs)
+    ax_spikes.set_title('Spikes')
+
+    plt.show()
+
+
+def plot_spikes_raster(output, size=(10, 1.2), **kwargs):
+    kwargs['size'] = size
+    ax = get_spikes_raster_plot(output, **kwargs)
+    ax.set_title('Spike raster')
+
+    plt.show()
+
+
+def plot_spikes_barcount(output):
+    f_spikes = h5py.File(output + 'spikes.h5', 'r')
+
+    rcells = _cells[::-1]
+    plt.figure()
+    plt.barh(_cells, map(lambda c: f_spikes[str(c)].value.size, rcells), align='center')
+    plt.yticks(_cells, map(lambda c: 'cell_' + str(c), rcells))
+    plt.xlabel('Number spikes')
+    plt.show()
+
+    f_spikes.close()
+
+def plot_cell_morphology(cell_id, **kwargs):
+
+    ax = get_cell_morphology_plot(cell_id, **kwargs)
+    plt.show()
+
+def plot_cell_morphology_tile(cell_ids):
+    fig, axarr = plt.subplots(1, len(cell_ids), figsize=(13, 7))
+
+    for i,id in enumerate(cell_ids):
+        get_cell_morphology_plot(id, ax=axarr[i])
+
+    plt.show()
