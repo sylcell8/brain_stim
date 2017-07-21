@@ -17,8 +17,7 @@ cell_out_dir = out_dir + gid + '/'
 
 els = range(500)
 #els = random.sample(range(1020), 500)
-inputs = [-0.03, -0.04, -0.05]
-
+inputs = [-0.09]
 trial = 0 # TODO hook this up!
 
 #%% Build table

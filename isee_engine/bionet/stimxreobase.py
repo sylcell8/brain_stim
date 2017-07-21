@@ -85,13 +85,15 @@ class MeshXElectrode():
         swc_movedto_origin = {}
 
         for model_id in self.soma_pos:
-            soma_pos = pd.concat([self.soma_pos[model_id]] * len(self.swc_list[model_id]), ignore_index=True)
-            swc_movedto_origin[model_id]["x"] = self.swc_list[model_id[0]]["x"] - soma_pos["x"]
+            # soma_pos = pd.concat([self.soma_pos[model_id]] * len(self.swc_list[model_id]), ignore_index=True)
+            x = self.swc_list[model_id]["x"] - float(self.soma_pos[model_id]["x"])
+            y = self.swc_list[model_id]["y"] - float(self.soma_pos[model_id]["y"])
+            z = self.swc_list[model_id]["z"] - float(self.soma_pos[model_id]["z"])
+            swc_movedto_origin[model_id] = pd.DataFrame({"x" : x, "y" : y, "z" : z})
             file_name = self.electrodes_mesh_file_dir + "/" + str(model_id) + "swc_movedto_origin.csv"
             with open(file_name, 'w') as f:
                 swc_movedto_origin[model_id].to_csv(f, header=False, sep=' ', index=False)
 
-        print swc_movedto_origin
         return swc_movedto_origin
 
 
@@ -159,6 +161,7 @@ class MeshXElectrode():
 
         grid = self.make_spherical_mesh()
         swc_movedto_origin = self.move_swc_to_origin()
+        print swc_movedto_origin
 
         for model_id in self.soma_pos:
             file_name = self.electrodes_mesh_file_dir + "/" + str(model_id) + "stimXelectrodes.csv"
