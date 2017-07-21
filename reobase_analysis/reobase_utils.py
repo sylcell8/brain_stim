@@ -76,5 +76,5 @@ def get_electrode_path(electrodes_dir, gid, el):
     return '/'.join([electrodes_dir, gid + '_' + g.fill_el(el) + '.csv'])
 
 
-def get_config_resolved_path(out_folder, el):
-    return out_folder + 'config_el' + g.fill_el(el) + '_resolved.json'
+def get_config_resolved_path(out_folder, el, amp):
+    return out_folder + 'config_el' + g.fill_el(el) + '_amp' + str(amp) + '_resolved.json'

@@ -10,12 +10,12 @@ from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 
 
 gid = '313862022'
-out_dir = '/Volumes/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/outputs/dc/' ## TODO source from conf file
+out_dir = '/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/outputs/dc/' ## TODO source from conf file
 cell_out_dir = out_dir + gid + '/'
 
-els = range(100)
+els = range(1027)
 #els = random.sample(range(1020), 500)
-inputs = [-0.03]
+inputs = [-0.08]
 trial = 0 # TODO hook this up!
 
 #%% Build table
@@ -28,8 +28,7 @@ for run in runs: # (el, i_stim) pairs
     electrode = run[0] # safe to use el from here b/c folder was built from this
     rf = g.dc_folder_format(g.get_dc_key(*run), trial) + '/'
     out_folder = cell_out_dir + rf
-    config_path = ru.get_config_resolved_path(out_folder, electrode)
-
+    config_path = ru.get_config_resolved_path(out_folder, electrode, int(inputs[0]*-1000))
     try:
         conf = tc.get_json_from_file(config_path)
     except:
@@ -39,7 +38,7 @@ for run in runs: # (el, i_stim) pairs
     el_conf = conf["extracellular_stimelectrode"]
     electrodes_dir = conf['output']['electrodes_dir']
     # TODO if on mac...
-    electrodes_dir = '/Volumes/'+'/'.join(electrodes_dir.split('/')[2:])
+    electrodes_dir = '/allen/'+'/'.join(electrodes_dir.split('/')[2:])
 
     waveform = stimx_waveform_factory(conf)
     amp = waveform.amp
@@ -57,7 +56,7 @@ print 'Table created'
 #%% Write out to h5
 
 #fpath = '/Users/Taylor/projects/allen2017/table.h5'
-fpath = '/Volumes/aibs/mat/Taylorc/test_table.h5'
+fpath = '/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_tables/test_table_amp80.h5'
 ru.write_table_h5(fpath, table)
 
 
