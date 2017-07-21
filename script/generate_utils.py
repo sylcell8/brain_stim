@@ -24,6 +24,7 @@ def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
     conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
     # Note: output dir doesn't include current sign
     conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ "$RUN_DIR/outputs", stim_type, cell, run_folder])
+    conf_data["manifest"]["$STIM_DIR"] = "/".join([ "$BASE_DIR/stimulation", cell])
 
     return conf_data
 
