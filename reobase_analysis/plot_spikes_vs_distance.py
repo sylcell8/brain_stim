@@ -20,7 +20,6 @@ amps = t.amp.unique()
 
 for i, amp in enumerate(amps):
     o = i*offset - len(amps)/2
-    print o
     data= t[t['amp'] == amp]
     line = ax.scatter(data.distance + o, data.num_spikes, 
                       marker='o', s=50, alpha=.20, edgecolors='none', 
