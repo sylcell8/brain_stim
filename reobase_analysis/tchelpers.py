@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib as mlb
 import matplotlib.pyplot as plt
 import h5py
+import glob
 import json
 from allensdk.core.cell_types_cache import CellTypesCache
 
@@ -45,19 +46,30 @@ mlb.rcParams.update({
 #
 #################################################
 
-def get_cv_files(output, cells=_cells):
-    cv_dir = output + 'cellvars/'
-    return map(lambda c: h5py.File(cv_dir + str(c) + '.h5', 'r'), cells)
+def get_cv_files(output, cells=None):
+    cv_dir = cat_folders(output, 'cellvars')
+
+    if cells is not None:
+        files = map(lambda c: h5py.File( cat_folders(cv_dir, str(c)) + '.h5', 'r'), cells)
+    else:
+        files = [h5py.File(f) for f in glob.glob(cv_dir + "*.h5")]
+
+    return files
 
 def get_spikes_file(output):
-    return h5py.File(output + 'spikes.h5', 'r')
+    return h5py.File( cat_folders(output,'spikes.h5'), 'r')
 
 def get_json_from_file(path):
     with open(path, 'r') as f:
         return json.load(f)
         
 def cat_folders(*args):
-    '/'.join(*args)
+    root = args[0]
+    is_abs_path = root[0] == '/'
+    clean = [s.strip('/') for s in args]
+    if is_abs_path:
+        clean[0] = '/' + clean[0]
+    return '/'.join(clean)
 
 #################################################
 #
@@ -73,7 +85,8 @@ def calc_xticks(tlimits,dt,ticksEvery):
 
 def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 7),
                                 ticks_every=500, show_legend=True, **kwargs):
-    cvfiles = get_cv_files(output)
+
+    cvfiles = get_cv_files(output, [cell]) if cell is not None else get_cv_files(output)
     tstop = cvfiles[0].attrs['tstop']
     dt = cvfiles[0].attrs['dt']
 
@@ -82,8 +95,7 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
         ax = plt.subplot(111)
 
     for i, f in enumerate(cvfiles):
-        if cell is None or cell is i:
-            ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, label='cell_' + str(i))
+        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, label='cell_' + str(i))
 
     xtick_location, xtick_labels = calc_xticks([0, tstop], dt, ticks_every)
     ax.set_xticks(xtick_location)
@@ -228,7 +240,7 @@ def plot_spikes_raster(output, size=(10, 1.2), **kwargs):
 
 
 def plot_spikes_barcount(output):
-    f_spikes = h5py.File(output + 'spikes.h5', 'r')
+    f_spikes = h5py.File( cat_folders(output + 'spikes.h5'), 'r')
 
     rcells = _cells[::-1]
     plt.figure()

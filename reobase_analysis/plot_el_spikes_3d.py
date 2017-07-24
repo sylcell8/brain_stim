@@ -22,7 +22,7 @@ t = ru.read_table_h5(fpath)
 #%% Plot
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-line = ax.scatter(t.x, t.y, t.z, c=t.spikes.map(lambda x: x.size), s=60, edgecolors='none')
+line = ax.scatter(t.x, t.y, t.z, c=t.spikes.map(lambda x: x.size), s=50, edgecolors='none')
 ax.plot_wireframe(x, y, z, color="r")
 cb = plt.colorbar(line)
 

@@ -1,21 +1,24 @@
 #import os,sys
-import numpy as np
 import itertools
-#import random
 
-import script.generate_utils as g
-import script.tchelpers as tc
+import numpy as np
+
+import reobase_analysis.generate_utils as g
+import reobase_analysis.tchelpers as tc
 import reobase_utils as ru
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
+
+# import random
 
 
 gid = '313862022'
 out_dir = '/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/outputs/dc/' ## TODO source from conf file
 cell_out_dir = out_dir + gid + '/'
 
-els = range(1027)
+els = range(500)
 #els = random.sample(range(1020), 500)
-inputs = [-0.08]
+inputs = [-0.03, -0.04, -0.05]
+
 trial = 0 # TODO hook this up!
 
 #%% Build table
@@ -26,14 +29,14 @@ runs = itertools.product(els, inputs)
 
 for run in runs: # (el, i_stim) pairs
     electrode = run[0] # safe to use el from here b/c folder was built from this
-    rf = g.dc_folder_format(g.get_dc_key(*run), trial) + '/'
+    rf = g.dc_folder_format(electrode, run[1], trial) + '/'
     out_folder = cell_out_dir + rf
     config_path = ru.get_config_resolved_path(out_folder, electrode, int(inputs[0]*-1000))
     try:
         conf = tc.get_json_from_file(config_path)
     except:
         print 'unable to find config at ' + config_path
-        continue;
+        continue
         
     el_conf = conf["extracellular_stimelectrode"]
     electrodes_dir = conf['output']['electrodes_dir']
@@ -57,6 +60,8 @@ print 'Table created'
 
 #fpath = '/Users/Taylor/projects/allen2017/table.h5'
 fpath = '/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_tables/test_table_amp80.h5'
+#fpath = '/Volumes/aibs/mat/Taylorc/test_table.h5'
+# fpath = '/Volumes/aibs/mat/Taylorc/table_313862022_els500_amp30_50.h5'
 ru.write_table_h5(fpath, table)
 
 

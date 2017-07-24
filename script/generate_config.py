@@ -1,5 +1,6 @@
 import argparse
-from generate_utils import *
+
+from reobase_analysis.generate_utils import *
 
 # args
 parser = argparse.ArgumentParser()

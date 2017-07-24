@@ -1,8 +1,11 @@
+import os
+
 import h5py as h5
-import pandas as pd
 import numpy as np
-import script.tchelpers as tc
-import script.generate_utils as g
+import pandas as pd
+
+import reobase_analysis.generate_utils as g
+import reobase_analysis.tchelpers as tc
 
 dc_cols = ['trial', 'electrode', 'x', 'y', 'z', 'distance', 'amp', 'spikes']
 
@@ -51,6 +54,14 @@ def write_table_h5(fpath, df):
 #
 #################################################
 
+
+def get_reobase_folder(*args):
+    network_root = '/allen'
+    if os.path.isdir('/Volumes'):
+        network_root = '/Volumes'
+
+    return tc.cat_folders(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
+
 def get_spikes_data(out_path):
     cellvars = tc.get_cv_files(out_path, cells=[0])[0]
     return cellvars['spikes'].value
@@ -77,4 +88,4 @@ def get_electrode_path(electrodes_dir, gid, el):
 
 
 def get_config_resolved_path(out_folder, el, amp):
-    return out_folder + 'config_el' + g.fill_el(el) + '_amp' + str(amp) + '_resolved.json'
+    return tc.cat_folders(out_folder, 'config_' + g.get_dc_key(el, amp) + '_resolved.json')
