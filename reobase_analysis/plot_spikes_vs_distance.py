@@ -7,7 +7,7 @@ import reobase_utils as ru
 fdir = ru.get_reobase_folder('Run_folder/result_tables/')
 
 fetch_amps = map(str,range(10 ,80, 10))
-paths = [fdir + 'table_313862022_amp' + a + '.h5' for a in fetch_amps]
+paths = [ru.concat_path(fdir, 'table_313862022_amp' + a + '.h5') for a in fetch_amps]
 
 t = pd.concat([ru.read_table_h5(p) for p in paths])
 

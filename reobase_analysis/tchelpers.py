@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib as mlb
 import matplotlib.pyplot as plt
 import h5py
-import glob
-import json
 from allensdk.core.cell_types_cache import CellTypesCache
 
+from reobase_utils import *
+
 ## NOTE THIS ASSSUMES 3 CELL NETWORK, OR THAT YOU ONLY CARE ABOUT FIRST 3 CELLS
+## TODO remove this assumption
 _cells = np.array([0, 1, 2])
 
 
@@ -39,37 +40,6 @@ mlb.rcParams.update({
 #     f, ax = plt.subplots()  # Will make a figure with a grid
 #     ax.plot(x, y)
 
-
-#################################################
-#
-#     Utils
-#
-#################################################
-
-def get_cv_files(output, cells=None):
-    cv_dir = cat_folders(output, 'cellvars')
-
-    if cells is not None:
-        files = map(lambda c: h5py.File( cat_folders(cv_dir, str(c)) + '.h5', 'r'), cells)
-    else:
-        files = [h5py.File(f) for f in glob.glob(cv_dir + "*.h5")]
-
-    return files
-
-def get_spikes_file(output):
-    return h5py.File( cat_folders(output,'spikes.h5'), 'r')
-
-def get_json_from_file(path):
-    with open(path, 'r') as f:
-        return json.load(f)
-        
-def cat_folders(*args):
-    root = args[0]
-    is_abs_path = root[0] == '/'
-    clean = [s.strip('/') for s in args]
-    if is_abs_path:
-        clean[0] = '/' + clean[0]
-    return '/'.join(clean)
 
 #################################################
 #
@@ -240,7 +210,7 @@ def plot_spikes_raster(output, size=(10, 1.2), **kwargs):
 
 
 def plot_spikes_barcount(output):
-    f_spikes = h5py.File( cat_folders(output + 'spikes.h5'), 'r')
+    f_spikes = h5py.File(concat_path(output + 'spikes.h5'), 'r')
 
     rcells = _cells[::-1]
     plt.figure()

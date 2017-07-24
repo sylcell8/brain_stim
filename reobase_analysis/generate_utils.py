@@ -1,22 +1,16 @@
-import sys,os
-import json
-import math
 import shutil
 import copy
-
 import itertools
+from reobase_utils import *
 
 
-def get_dc_key(el, amp):
-    parts = ['el' + fill_el(el), "amp{0:.0f}".format(math.fabs(amp * 1000.))]
-    return '_'.join(parts)
+#
+#  For generating batches of config files
+#
 
-def dc_folder_format(el, amp, trial):
-    parts = [get_dc_key(el, amp), 'tr' + str(trial)]
-    return '_'.join(parts)
 
 def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
-    el = fill_el(el)
+    el = format_el(el)
     cell = str(cell)
     run_folder = dc_folder_format(el, amp, trial)
 
@@ -42,9 +36,6 @@ def generate_config(base, file_name_tpl, out_dir, el_filled, *args):
 
     return filename
 
-def fill_el(el): #idempotent
-    return str(el).zfill(4)
-
 def prep_confs_folder(confs_folder):
     if os.path.isdir(confs_folder):
         # clear it
@@ -62,6 +53,6 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
             print get_dc_key(*combination)
 
         (electrode, amp) = combination
-        el_filled = fill_el(electrode)
+        el_filled = format_el(electrode)
         conf_name = 'config_{}.json'.format(get_dc_key(el_filled, amp))
         generate_config(config_base, conf_name, confs_folder, el_filled, cell, amp, bconf['trial'])
