@@ -2,17 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import reobase_utils as r
 
-fdir = r.get_reobase_folder('Run_folder/result_tables/')
 cell_gid = 313862022
-
-print "Fetching data..."
-fetch_amps = map(str,range(10 ,80, 10))
-paths = [r.concat_path(fdir, 'table_{}_amp{}.h5'.format(cell_gid, a)) for a in fetch_amps]
-
-t = r.build_dc_df()
-t = t.append([r.read_table_h5(p) for p in paths])
+t = r.read_cell_tables(cell_gid)
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
-print "Done"
 
 #%% find raster for a given el, amp
 #el = 10
@@ -44,7 +36,7 @@ def plot_amp(amp):
     ax.set_ylabel('Electrode')
     plt.show()
 
-plot_amp(-0.03)
+#plot_amp(-0.03)
 
 
 # by el
@@ -73,4 +65,4 @@ def plot_el(el):
     ax.set_ylabel('I_{stim}')
     plt.show()
 
-plot_el(10)
+#plot_el(10)

@@ -3,17 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import reobase_utils as ru
 
+cell_gid = 313862022
+t = ru.read_cell_tables(cell_gid)
 
-fdir = ru.get_reobase_folder('Run_folder/result_tables/')
-
-fetch_amps = map(str,range(10 ,80, 10))
-paths = [ru.concat_path(fdir, 'table_313862022_amp' + a + '.h5') for a in fetch_amps]
-
-t = pd.concat([ru.read_table_h5(p) for p in paths])
-
-#t = ru.read_table_h5(fpath)
-
-# cal num spikes
+# add num spikes
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 
 
@@ -40,4 +33,5 @@ def plot():
         
     plt.show()
 
-plot()
+print "Run 'plot'..."
+#plot()
