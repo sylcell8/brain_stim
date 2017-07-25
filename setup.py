@@ -50,7 +50,7 @@ setup(
     name=package_name,
     version=package.__version__,
     tests_require=['pytest'],
-    install_requires=[],
+    install_requires=['pandas', 'matplotlib', 'numpy', ],
     cmdclass={'test': PyTest},
     packages=prepend_find_packages(package_name),
     include_package_data=True,

@@ -182,6 +182,29 @@ def plot_vext_vm_tiles(outputs, **kwargs):
 
     plt.show()
 
+def plot_waveform_vm(output, waveform, size=(13,7), **kwargs):
+
+    fig, axarr = plt.subplots(2,1, sharex='col', sharey='row', figsize=size)
+
+    kwargs['size'] = None
+    kwargs['show_legend'] = False
+
+
+    (ax_istim, ax_vm) = (axarr[0], axarr[1])
+
+    kwargs['ax'] = ax_vm
+    get_cellvar_timeseries_plot(output, 'vm', **kwargs)
+    ax_vm.set_xlabel('Time (s)')
+    ax_vm.set_ylabel('$V_m$ (mV)')
+    xvals = ax_vm.lines[0].get_xdata()
+
+    ax_istim.plot(xvals, [waveform.calculate(x) for x in xvals])
+    ax_istim.set_xlabel('Time (s)')
+    ax_istim.set_ylabel('$I_{stim}$ (mA)')
+
+    fig.suptitle(kwargs['title'])
+
+    plt.show()
 
 def plot_vm_spikes_raster(output, **kwargs):
 

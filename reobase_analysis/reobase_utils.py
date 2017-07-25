@@ -6,8 +6,6 @@ import h5py as h5
 import numpy as np
 import pandas as pd
 
-import tchelpers as tc
-
 #################################################
 #
 #     Run aggregate data output file
@@ -84,11 +82,17 @@ def format_el(el): #idempotent
     """
     return str(el).zfill(4)
 
+def format_amp(amp):
+    return "{0:.0f}".format( math.fabs(amp * 1000.) )
+
+def get_table_filename(cell_gid, amp):
+    return 'table_{}_amp{}.h5'.format(cell_gid, format_amp(amp))
+
 def get_dc_key(el, amp):
     """
     file/folder name code
     """
-    parts = ['el' + format_el(el), "amp{0:.0f}".format(math.fabs(amp * 1000.))]
+    parts = ['el' + format_el(el), 'amp' + format_amp(amp)]
     return '_'.join(parts)
 
 def dc_folder_format(el, amp, trial):
@@ -107,7 +111,8 @@ def get_electrode_path(electrodes_dir, gid, el):
 
 
 def get_config_resolved_path(out_folder, el, amp):
-    return concat_path(out_folder, 'config_' + get_dc_key(el, amp) + '_resolved.json')
+    key = get_dc_key(el, amp)
+    return concat_path(out_folder, 'config_' + key + '_resolved.json')
 
 
 
