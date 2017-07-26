@@ -19,7 +19,7 @@ def find_thresholds(df):
 
         # use indexes to obtain amp values, if any
         if spike.size == 0 or nospike.size == 0:
-            print 'cannot find threshold range for el {}'.format(el)
+            # print 'cannot find threshold range for el {}'.format(el)
             thresh = None
         else:
             thresh_upper = group.loc[spike.idxmax().amp].amp    # get the most positive/ least neg. amp
