@@ -5,13 +5,12 @@ import reobase_utils as ru
 
 cell_gid = 313862022
 t = ru.read_cell_tables(cell_gid)
-
 # add num spikes
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 
 
 #%% Plot
-def plot():
+def plot(t):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     
@@ -33,5 +32,5 @@ def plot():
         
     plt.show()
 
-print "Run 'plot'..."
+print "Run 'plot(t)'..."
 #plot()

@@ -65,8 +65,9 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
         ax = plt.subplot(111)
     
     for i, f in enumerate(cvfiles):
-        kwargs['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
-        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, **kwargs)
+        plot_args = {}
+        plot_args['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
+        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, **plot_args)
 
     xtick_location, xtick_labels = calc_xticks([0, tstop], ticks_every)
     ax.set_xticks(xtick_location)

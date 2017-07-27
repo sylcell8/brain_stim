@@ -2,10 +2,7 @@ import matplotlib.pyplot as plt
 import reobase_analysis.tchelpers as tc
 import reobase_analysis.reobase_utils as ru
 
-# operating params
-cell = 313862022
-amp = -0.03
-electrodes = range(20,41,4)
+#%% Plot
 
 def plot(cell_gid, amp, els):
     # fetch voltage traces and plot
@@ -17,9 +14,9 @@ def plot(cell_gid, amp, els):
         plt.legend(title="Electrode #")
         
     ax.set_title('$V_m$ traces for multiple electrodes')
-    ax.set_xlabel('$V_m$')
+    ax.set_ylabel('$V_m$')
     ax.set_xlabel('Time (s)')
     plt.show()
     
     
-plot(cell, amp, electrodes)
+print "Try running: 'plot(313862022, -0.03, range(20,41,4))'"

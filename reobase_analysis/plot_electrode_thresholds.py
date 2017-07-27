@@ -6,18 +6,11 @@ import numpy as np
 cell_gid = 313862022
 t = r.read_cell_tables(cell_gid, range(10,20,10))
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
-
-
-#%% Find spherical coordinates
-# distance is 'r'
-#rho = np.sqrt(t.x**2 + t.y**2)
-#t['phi'] = phi2 = np.arctan2(rho, t.z)
-#t['theta'] = theta2 = np.arctan2(t.y,t.x)
-
 t['theta'], t['phi'] = ra.spherical_coords(t)
 
 #%% Find threshold
 thresholds = ra.find_thresholds(t)
+# Choose upper value of range
 el_th = []
 for el,thresh in thresholds.items():
     if thresh is not None:
@@ -52,31 +45,32 @@ ax.set_yticklabels(arctan2_labels[2:])
 plt.show()
 
 #%%
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.scatter([get_phi(el) for el in els], thresh, s=4)
-ax.set_title('threshold vs angle $\phi$ to z-axis')
-ax.set_xticks(np.arange(0, np.pi+0.1, np.pi/2))
-ax.set_xticklabels(arctan2_labels[2:])
-plt.show()
+def plot_phi():
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter([get_phi(el) for el in els], thresh, s=4)
+    ax.set_title('threshold vs angle $\phi$ to z-axis')
+    ax.set_xticks(np.arange(0, np.pi+0.1, np.pi/2))
+    ax.set_xticklabels(arctan2_labels[2:])
+    plt.show()
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.scatter([get_theta(el) for el in els], thresh, s=4)
-ax.set_title('threshold vs angle $\Theta$ to x-axis')
-ax.set_xticks(arctan2_range)
-ax.set_xticklabels(arctan2_labels)
-plt.show()
+def plot_theta():
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter([get_theta(el) for el in els], thresh, s=4)
+    ax.set_title('threshold vs angle $\Theta$ to x-axis')
+    ax.set_xticks(arctan2_range)
+    ax.set_xticklabels(arctan2_labels)
+    plt.show()
 
 #%%
+def table_covariance(t):
+    compare = t[['x','y','z','phi','theta','distance','amp','num_spikes']].cov().as_matrix()
+    np.fill_diagonal(compare, 0)
+    
+    line = plt.matshow(compare)
+    plt.colorbar(line)
+    plt.show()
 
-compare = t[['x','y','z','phi','theta','distance','amp','num_spikes']].cov().as_matrix()
-np.fill_diagonal(compare, 0)
-
-line = plt.matshow(compare)
-plt.colorbar(line)
-plt.show()
-
-
-
+table_covariance(t)
 
