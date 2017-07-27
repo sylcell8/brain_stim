@@ -12,7 +12,7 @@ from reobase_utils import *
 def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
     el = format_el(el)
     cell = str(cell)
-    run_folder = dc_folder_format(el, amp, trial)
+    run_folder = get_dc_dir_name(el, amp, trial)
 
     conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell + "_" + el + ".csv"
     conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp

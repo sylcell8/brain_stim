@@ -47,7 +47,7 @@ mlb.rcParams.update({
 #
 #################################################
 
-def calc_xticks(tlimits,dt,ticksEvery):
+def calc_xticks(tlimits,ticksEvery):
     xtick_location = np.arange(tlimits[0], tlimits[1] + 1, ticksEvery)
     xtick_labels = map(lambda t: str(t / 1000.), xtick_location)
     return xtick_location, xtick_labels
@@ -63,11 +63,12 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
     if not ax:
         plt.figure(figsize=size)
         ax = plt.subplot(111)
-
+    
     for i, f in enumerate(cvfiles):
-        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, label='cell_' + str(i))
+        kwargs['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
+        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, **kwargs)
 
-    xtick_location, xtick_labels = calc_xticks([0, tstop], dt, ticks_every)
+    xtick_location, xtick_labels = calc_xticks([0, tstop], ticks_every)
     ax.set_xticks(xtick_location)
     ax.set_xticklabels(xtick_labels)
     
@@ -94,7 +95,7 @@ def get_spikes_raster_plot(output, size=None, ax=None, ticksEvery=500, **kwargs)
     ax.margins(0.05, 0.50)
     ax.set_xlabel('Time (s)')
 
-    xtick_location, xtick_labels = calc_xticks([0, tstop],1,ticksEvery)
+    xtick_location, xtick_labels = calc_xticks([0, tstop],ticksEvery)
     ax.set_xticks(xtick_location)
     ax.set_xticklabels(xtick_labels)
     ax.set_yticks(cells)

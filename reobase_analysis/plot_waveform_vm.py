@@ -7,7 +7,7 @@ el = 409
 amp = 0.050
 gid = 314900022
 
-example_dir = ru.get_reobase_folder('Run_folder/outputs/dc/', str(gid), dc_folder_format(el,amp,0))
+example_dir = ru.get_reobase_folder('Run_folder/outputs/dc/', str(gid), get_dc_dir_name(el, amp, 0))
 # plot_vext_vm_tiles(example_dir, cell=0, title='$V_m$ and $V_{ext}$ under various inputs')
 
 conf = get_json_from_file(ru.get_config_resolved_path(example_dir, el, amp))

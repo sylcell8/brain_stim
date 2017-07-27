@@ -19,7 +19,7 @@ def concat_path(*args):
     """
     root = args[0]
     is_abs_path = root[0] == '/'
-    clean = [s.strip('/') for s in args]
+    clean = [str(s).strip('/') for s in args]
     if is_abs_path:
         clean[0] = '/' + clean[0]
     return '/'.join(clean)
@@ -43,7 +43,7 @@ def get_dc_key(el, amp):
     parts = ['el' + format_el(el), 'amp' + format_amp(amp)]
     return '_'.join(parts)
 
-def dc_folder_format(el, amp, trial):
+def get_dc_dir_name(el, amp, trial):
     parts = [get_dc_key(el, amp), 'tr' + str(trial)]
     return '_'.join(parts)
 
@@ -62,7 +62,10 @@ def get_config_resolved_path(out_folder, el, amp):
     key = get_dc_key(el, amp)
     return concat_path(out_folder, 'config_' + key + '_resolved.json')
 
-
+def get_dc_output_dir(cell_gid, el, amp, trial=0):
+    root = get_reobase_folder('Run_folder/outputs/dc/', cell_gid)
+    out_dir = get_dc_dir_name(el, amp, trial)
+    return concat_path(root, out_dir)
 
 #################################################
 #
@@ -80,7 +83,7 @@ def get_cv_files(output, cells=None):
     if cells is not None:
         files = map(lambda c: h5.File(concat_path(cv_dir, str(c)) + '.h5', 'r'), cells)
     else:
-        files = [h5.File(f) for f in glob.glob(cv_dir + "*.h5")]
+        files = [h5.File(f) for f in glob.glob(cv_dir + "/*.h5")]
 
     return files
 

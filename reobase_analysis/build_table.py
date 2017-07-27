@@ -8,8 +8,6 @@ import reobase_analysis.tchelpers as tc
 import reobase_utils as ru
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 
-# import random
-
 
 gid = '313862022'
 out_dir = '/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/outputs/dc/' ## TODO source from conf file
@@ -18,7 +16,7 @@ cell_out_dir = out_dir + gid + '/'
 els = range(500)
 #els = random.sample(range(1020), 500)
 inputs = [-0.09]
-trial = 0 # TODO hook this up!
+trial = 0
 
 #%% Build table
 print 'Build table...'
@@ -28,8 +26,8 @@ runs = itertools.product(els, inputs)
 
 for run in runs: # (el, i_stim) pairs
     electrode = run[0] # safe to use el from here b/c folder was built from this
-    rf = g.dc_folder_format(electrode, run[1], trial) + '/'
-    out_folder = cell_out_dir + rf
+    rf = g.get_dc_dir_name(electrode, run[1], trial)
+    out_folder = ru.concat_path(cell_out_dir, rf)
     config_path = ru.get_config_resolved_path(out_folder, electrode, int(inputs[0]*-1000))
     try:
         conf = tc.get_json_from_file(config_path)
