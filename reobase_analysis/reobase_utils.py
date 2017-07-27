@@ -55,7 +55,7 @@ def get_reobase_folder(*args):
     return concat_path(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
 
 def get_electrode_path(electrodes_dir, gid, el):
-    return '/'.join([electrodes_dir, gid + '_' + format_el(el) + '.csv'])
+    return concat_path(electrodes_dir, str(gid) + '_' + format_el(el) + '.csv')
 
 
 def get_config_resolved_path(out_folder, el, amp):

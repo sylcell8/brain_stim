@@ -362,7 +362,7 @@ def save_block2disk(conf,data_block,time_step_interval):
 
     # save_ecp(conf,data_block,time_step_interval)
     save_cell_vars(conf,data_block,time_step_interval)
-    # save_spikes2h5(conf,data_block)
+    save_spikes2h5(conf,data_block)
     save_spikes2ascii(conf,data_block)
     
 
