@@ -4,15 +4,17 @@ import analysis as ra
 import numpy as np
 
 cell_gid = 313862022
-t = r.read_cell_tables(cell_gid, range(10,50,10))
+t = r.read_cell_tables(cell_gid, range(10,20,10))
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 
 
 #%% Find spherical coordinates
 # distance is 'r'
-rho = np.sqrt(t.x**2 + t.y**2)
-t['phi'] = phi2 = np.arctan2(rho, t.z)
-t['theta'] = theta2 = np.arctan2(t.y,t.x)
+#rho = np.sqrt(t.x**2 + t.y**2)
+#t['phi'] = phi2 = np.arctan2(rho, t.z)
+#t['theta'] = theta2 = np.arctan2(t.y,t.x)
+
+t['theta'], t['phi'] = ra.spherical_coords(t)
 
 #%% Find threshold
 thresholds = ra.find_thresholds(t)

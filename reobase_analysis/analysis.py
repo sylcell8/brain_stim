@@ -1,7 +1,14 @@
 """
 Place to hold analysis functions
 """
+import numpy as np
 
+def spherical_coords(df):
+    rho = np.sqrt(df.x ** 2 + df.y ** 2)
+    theta = np.arctan2(rho, df.z)
+    phi = np.arctan2(df.y, df.x)
+
+    return theta, phi
 
 def find_thresholds(df):
     thresholds = {}

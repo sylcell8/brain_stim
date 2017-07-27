@@ -17,11 +17,14 @@ config_base = sargs.config_base
 batch_config = {
     "el_range": [0, sargs.number_el],
     "cell_gid": sargs.cell_gid,
-    "amps": [-0.2],
+    "amps": [-0.01, -0.02, -0.03],
+    # "freqs": [10, 40, 70],
     "trial": sargs.trial
 }
 
 print sargs
+
+
 
 #################################################
 #

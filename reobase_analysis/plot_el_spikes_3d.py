@@ -44,11 +44,22 @@ plt.show()
 
 
 #%% Plot stuff
+
+t['theta'], t['phi'] = ra.spherical_coords(t)
+
 amp = -0.03
 threshold = 0
-yes = t[(t['amp'] == amp) & (t['num_spikes'] >  threshold)]
-no  = t[(t['amp'] == amp) & (t['num_spikes'] <= threshold)]
 
+t2 = t[(t['phi'] > 3*np.pi/4) | (t['phi'] < np.pi/4)]
+
+def yes_no(df):
+    
+    yes = df[(df['amp'] == amp) & (df['num_spikes'] >  threshold)]
+    no  = df[(df['amp'] == amp) & (df['num_spikes'] <= threshold)]
+    
+    return yes,no
+
+yes,no = yes_no(t2)
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 line = ax.scatter(yes.x, yes.y, yes.z, c='g', s=50, edgecolors='none')

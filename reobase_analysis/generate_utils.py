@@ -47,8 +47,18 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
     cell = bconf['cell_gid']
     el_range = bconf['el_range']
     els = xrange(el_range[0], el_range[1])
+    considerations = [els, bconf['amps']]
 
-    for combination in itertools.product(els, bconf['amps']):
+    # only add freqs if it's there
+    if 'freqs' in bconf:
+        print "Set of frequencies passed in config -- be sure you are using a sin waveform! (otherwise you will get many duplicates)"
+        considerations += bconf['freqs']
+
+    for arr in considerations:
+        if len(arr) == 0:
+            raise ValueError('Cannot pass empty array as value set in for batch config')
+
+    for combination in itertools.product(considerations):
         if verbose:
             print get_dc_key(*combination)
 
