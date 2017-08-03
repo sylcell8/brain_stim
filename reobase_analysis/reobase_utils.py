@@ -5,6 +5,7 @@ import json
 import h5py as h5
 import numpy as np
 import pandas as pd
+import itertools
 
 
 #################################################
@@ -115,8 +116,15 @@ def get_cell_xyz(cell_file):  # Ideally you would use the method bionet uses
 
 dc_cols = ['trial', 'electrode', 'x', 'y', 'z', 'distance', 'amp', 'spikes']
 
-def resolve_run_id(gid, electrode, i):
-    stringified = map(str, [gid, electrode, '{0:.0f}'.format(np.abs(i * 1000))])
+def get_table_filename(cell_gid, amp):
+    if np.abs(int(amp)) != amp:
+        # assume it's not formatted yet
+        amp = format_amp(amp)
+
+    return 'table_{}_amp{}.h5'.format(cell_gid, amp)
+
+def resolve_run_id(gid, electrode, amp):
+    stringified = map(str, [gid, electrode, format_amp(amp)])
     return '_'.join(stringified)  # using current in micro amps
 
 def build_dc_df():
@@ -139,9 +147,7 @@ def read_table_h5(fpath):
         for i, rid in enumerate(ids):  # i is key for f5 dsets, rid is key for spikes & df
             data_cols = [x for x in dc_cols if x != 'spikes']
             data = [f5[c][i] for c in data_cols]
-            spikes = spike_data[rid].value
-
-            table.loc[rid] = data + [spikes]
+            table.loc[rid] = data + [spike_data[rid].value]
 
     return table
 
@@ -164,7 +170,7 @@ def read_cell_tables(cell_gid, amp_range=range(10, 80, 10),
     print "Fetching data..."
 
     fetch_amps = map(str, amp_range)
-    paths = [concat_path(data_dir, 'table_{}_amp{}.h5'.format(cell_gid, a)) for a in fetch_amps]
+    paths = [concat_path(data_dir, get_table_filename(cell_gid, a)) for a in fetch_amps]
 
     t = build_dc_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
@@ -172,3 +178,29 @@ def read_cell_tables(cell_gid, amp_range=range(10, 80, 10),
 
     print "Done"
     return t
+
+
+def read_cell_rows(cell_gid, els, amps,
+                   data_dir=get_reobase_folder('Run_folder/result_tables/')):
+
+    els = [els] if type(els) is not list else els
+    amps = [amps] if type(amps) is not list else amps
+    data_cols = [x for x in dc_cols if x != 'spikes']
+    table = build_dc_df()
+
+    for amp in amps:
+        fpath = concat_path(data_dir, get_table_filename(cell_gid, amp))
+
+        with h5.File(fpath, 'r') as f5:
+            ids = f5['ids'].value
+            spike_data = f5['spikes']
+
+            for el in els:
+                rid = resolve_run_id(cell_gid,el,amp)
+                i = np.argwhere(ids == rid)[0][0] # i is key for f5 dsets, rid is key for spikes & df
+                data = [f5[c][i] for c in data_cols]
+                table.loc[rid] = data + [(spike_data[rid].value)]
+
+    table['num_spikes'] = table.apply(lambda row: len(row['spikes']), axis=1)
+
+    return table

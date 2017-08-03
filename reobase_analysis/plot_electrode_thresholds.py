@@ -117,7 +117,7 @@ def plot_spikes_polar_angle(t, nbins=14):
         spikes_per_el = float(total_spikes) / num_els
         ax.bar(interval.left, spikes_per_el, width)
         
-    plt.savefig('polar_angle_spikes_{}_'.format(cell_gid) + r.format_amp(amp) + '.png') # amp is in outside scope
+#    plt.savefig('polar_angle_spikes_{}_'.format(cell_gid) + r.format_amp(amp) + '.png') # amp is in outside scope
     
 
 for amp, g in t.groupby('amp'):
