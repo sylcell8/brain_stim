@@ -42,12 +42,6 @@ print spike_train[0].data[:], spike_train[1].data[:]
 f.close()
 print
 
-<<<<<<< HEAD
-
-=======
-sys.exit()
->>>>>>> e1b0ffd7248e02279411b99ef80de286c5f10fc0
-
 '''
 Example 3: Storing spike times from a two neurons, combined data set:
 '''
@@ -66,7 +60,6 @@ print spike_train.scales[0].data[:]
 f.close()
 print
 
-sys.exit()
 
 '''
 Example 4: Store 3 firing rate traces as acquisition
