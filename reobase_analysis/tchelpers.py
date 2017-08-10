@@ -6,10 +6,6 @@ from allensdk.core.cell_types_cache import CellTypesCache
 
 from reobase_utils import *
 
-## NOTE THIS ASSSUMES 3 CELL NETWORK, OR THAT YOU ONLY CARE ABOUT FIRST 3 CELLS
-## TODO remove this assumption
-_cells = np.array([0, 1, 2])
-
 
 #################################################
 #
@@ -236,6 +232,7 @@ def plot_spikes_raster(output, size=(10, 1.2), **kwargs):
 
 
 def plot_spikes_barcount(output):
+    _cells = np.array([0, 1, 2])
     f_spikes = h5py.File(concat_path(output + 'spikes.h5'), 'r')
 
     rcells = _cells[::-1]

@@ -1,6 +1,5 @@
 import shutil
 import copy
-import itertools
 from reobase_utils import *
 
 
@@ -10,6 +9,7 @@ from reobase_utils import *
 
 
 def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
+    """ Lots of config settings are cell specific or input specific--all changes to the conf file should go here """
     el = format_el(el)
     cell = str(cell)
     run_folder = get_dc_dir_name(el, amp, trial)
@@ -17,26 +17,28 @@ def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
     conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell + "_" + el + ".csv"
     conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
     # Note: output dir doesn't include current sign
-    user_defined_outdir = conf_data["manifest"]["$OUTPUT_DIR"]	
-    conf_data["manifest"]["$OUTPUT_DIR"] = "/".join([ user_defined_outdir, stim_type, cell, run_folder])
-    conf_data["manifest"]["$STIM_DIR"] = "/".join([ "$BASE_DIR/stimulation", cell])
+    outdir_root = conf_data["manifest"]["$OUTPUT_DIR"]
+    conf_data["manifest"]["$OUTPUT_DIR"] = concat_path(outdir_root, stim_type, cell, run_folder)
+    conf_data["manifest"]["$STIM_DIR"]   = concat_path("$BASE_DIR/stimulation", cell)
+    # single cell definition and per-cell connection functions
+    conf_data["internal"]["cells"]     = "$NETWORK_DIR/{}_cell.csv".format(cell)
+    conf_data["internal"]["con_types"] = "$NETWORK_DIR/{}_func.csv".format(cell)
 
     return conf_data
 
-def generate_config(base, file_name_tpl, out_dir, el_filled, *args):
+def generate_config(base, filename, out_dir, el_filled, *args):
+    """ Per file logic -- modify base config data and then store in new file """
     with open(base, 'r') as fp:
         base_data = json.load(fp)
 
-
     data = set_config(copy.deepcopy(base_data), el_filled, *args)
-
-    filename = file_name_tpl.format(el_filled)
 
     with open(out_dir + '/' + filename, 'w') as fp:
         json.dump(data, fp, indent=4, separators=(',', ': ')) # print pretty
 
     return filename
 
+# "Reset" a folder - would make a good general util
 def prep_confs_folder(confs_folder):
     if os.path.isdir(confs_folder):
         # clear it

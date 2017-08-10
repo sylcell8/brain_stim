@@ -1,5 +1,4 @@
 import argparse
-
 from reobase_analysis.generate_utils import *
 
 # args

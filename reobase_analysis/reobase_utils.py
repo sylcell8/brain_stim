@@ -34,19 +34,11 @@ def format_el(el): #idempotent
 def format_amp(amp):
     return "{0:.0f}".format( math.fabs(amp * 1000.) )
 
+def format_freq(freq):
+    raise NotImplementedError
+
 def get_table_filename(cell_gid, amp):
     return 'table_{}_amp{}.h5'.format(cell_gid, format_amp(amp))
-
-def get_dc_key(el, amp):
-    """
-    file/folder name code
-    """
-    parts = ['el' + format_el(el), 'amp' + format_amp(amp)]
-    return '_'.join(parts)
-
-def get_dc_dir_name(el, amp, trial):
-    parts = [get_dc_key(el, amp), 'tr' + str(trial)]
-    return '_'.join(parts)
 
 def get_reobase_folder(*args):
     network_root = '/allen'
@@ -63,9 +55,38 @@ def get_config_resolved_path(out_folder, el, amp):
     key = get_dc_key(el, amp)
     return concat_path(out_folder, 'config_' + key + '_resolved.json')
 
+### DC ###
+
+def get_dc_key(el, amp):
+    """
+    file/folder name code
+    """
+    parts = ['el' + format_el(el), 'amp' + format_amp(amp)]
+    return '_'.join(parts)
+
+def get_dc_dir_name(el, amp, trial):
+    return '_'.join( [get_dc_key(el, amp), 'tr' + str(trial)] )
+
 def get_dc_output_dir(cell_gid, el, amp, trial=0):
     root = get_reobase_folder('Run_folder/outputs/dc/', cell_gid)
     out_dir = get_dc_dir_name(el, amp, trial)
+    return concat_path(root, out_dir)
+
+### SIN ###
+
+def get_sin_key(el, amp, freq):
+    """
+    file/folder name code
+    """
+    parts = ['el' + format_el(el), 'amp' + format_amp(amp), 'freq' + format_freq(freq)]
+    return '_'.join(parts)
+
+def get_sin_dir_name(el, amp, freq, trial):
+    return '_'.join( [get_sin_key(el, amp, freq), 'tr' + str(trial)] )
+
+def get_sin_output_dir(cell_gid, el, amp, freq, trial=0):
+    root = get_reobase_folder('Run_folder/outputs/sin/', cell_gid)
+    out_dir = get_sin_dir_name(el, amp, freq, trial)
     return concat_path(root, out_dir)
 
 #################################################

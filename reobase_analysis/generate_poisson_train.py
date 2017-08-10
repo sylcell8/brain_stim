@@ -18,4 +18,4 @@ def build_spike_trains(firing_rate, T, num_trials, num_cells):
     f.close()
 
 
-build_spike_trains(5, 3, 2, 6)
+# build_spike_trains(5, 3, 2, 6)
