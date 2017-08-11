@@ -51,7 +51,6 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
         if waveform_type == 'sin':
             waveform_props["freq"] = combo[2]
 
-        print waveform_props
         conf_name = 'config_{}.json'.format(key)
         conf_data = generate_config(config_base, conf_name, confs_folder,
                                     el, cell, run_folder, waveform_props, stim_type)
