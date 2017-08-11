@@ -161,9 +161,10 @@ class MeshXElectrode():
 
         grid = self.make_spherical_mesh()
         swc_movedto_origin = self.move_swc_to_origin()
-        print swc_movedto_origin
 
         for model_id in self.soma_pos:
+            # print self.swc_list[model_id]["r"]
+
             file_name = self.electrodes_mesh_file_dir + "/" + str(model_id) + "stimXelectrodes.csv"
 
             dist = cdist(grid, swc_movedto_origin[model_id], metric='euclidean')
@@ -181,7 +182,7 @@ class MeshXElectrode():
                 final_df.to_csv(f, header= False, sep = ' ', index=False)
 
             for el in range(len(final_df)):
-                file_name3 = self.electrodes_mesh_file_dir + "/" + str(model_id) + "_" + str(el) + ".csv"
+                file_name3 = self.electrodes_mesh_file_dir + "/" + str(model_id) + "_" + str(el).zfill(4) + ".csv"
                 with open(file_name3, 'w') as f3:
                     writer = csv.writer(f3, delimiter=' ')
                     writer.writerow(["ip", "electrode_mesh_file", "pos_x", "pos_y", "pos_z",
