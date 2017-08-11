@@ -17,9 +17,9 @@ batch_config = {
     "el_range": [0, sargs.number_el],
     "cell_gid": sargs.cell_gid,
     "amps": [-0.01, -0.02, -0.03],
-    # "freqs": [10, 40, 70],
+    "freqs": [10, 40, 70],
     "trial": sargs.trial,
-    "stim_type":'dc_lgn_poisson', # output directory name -- differs from waveform type, b/c includes external inputs
+    "stim_type":'sin_lgn_poisson', # output directory name -- differs from waveform type, b/c includes external inputs
 }
 
 print sargs

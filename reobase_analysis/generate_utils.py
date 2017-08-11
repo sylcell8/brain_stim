@@ -25,6 +25,12 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
         'sin': get_sin_key,
     }.get(waveform_type)
 
+    # dir function used for consistent naming
+    dir_fn = {
+        'dc': get_dc_dir_name,
+        'sin': get_sin_dir_name,
+    }.get(waveform_type)
+
     # only add freqs if it's there
     if 'freqs' in bconf:
         considerations += [bconf['freqs']]
@@ -34,42 +40,49 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
         if len(arr) == 0:
             raise ValueError('Cannot pass empty array as value set in for batch config')
 
-    # TODO support SIN waveform
     for combo in itertools.product(*considerations):
-        (electrode, amp) = combo
-        el_filled = format_el(electrode)
-        conf_name = 'config_{}.json'.format(key_fn(el_filled, amp))
-        conf_data = generate_config(config_base, conf_name, confs_folder, el_filled, cell, amp,
-                                    trial=bconf['trial'], stim_type=stim_type)
+        el = combo[0]
+        key = key_fn(*combo)
+        run_folder = dir_fn( *(combo + (bconf["trial"],)) )
+        waveform_props = {
+            "shape": waveform_type,
+            "amp": combo[1],
+        }
+        if waveform_type == 'sin':
+            waveform_props["freq"] = combo[2]
+
+        print waveform_props
+        conf_name = 'config_{}.json'.format(key)
+        conf_data = generate_config(config_base, conf_name, confs_folder,
+                                    el, cell, run_folder, waveform_props, stim_type)
 
         if verbose:
-            print 'KEY: ', key_fn(*combo), '   -----   OUTPUT DIR: ', conf_data["manifest"]["$OUTPUT_DIR"]
+            print 'KEY: ', key, '   -----   OUTPUT DIR: ', conf_data["manifest"]["$OUTPUT_DIR"]
 
 
-def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
+def set_config(conf_data, el, cell_gid, run_folder, waveform_props, stim_type):
     """ Lots of config settings are cell specific or input specific--all changes to the conf file should go here """
-    el = format_el(el) ## TODO stop being weird about el... call the string filled_el or use a number
-    cell = str(cell)
-    run_folder = get_dc_dir_name(el, amp, trial)
+    cell_gid = str(cell_gid)
+    # run_folder = get_dc_dir_name(el, amp, trial)
 
-    conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell + "_" + el + ".csv"
-    conf_data["extracellular_stimelectrode"]["waveform"]["amp"] = amp
+    conf_data["extracellular_stimelectrode"]["position"] = "$STIM_DIR/" + cell_gid + "_" + format_el(el) + ".csv"
+    conf_data["extracellular_stimelectrode"]["waveform"].update(waveform_props)
     # Note: output dir doesn't include current sign
     outdir_root = conf_data["manifest"]["$OUTPUT_DIR"]
-    conf_data["manifest"]["$OUTPUT_DIR"] = concat_path(outdir_root, stim_type, cell, run_folder)
-    conf_data["manifest"]["$STIM_DIR"]   = concat_path("$BASE_DIR/stimulation", cell)
+    conf_data["manifest"]["$OUTPUT_DIR"] = concat_path(outdir_root, stim_type, cell_gid, run_folder)
+    conf_data["manifest"]["$STIM_DIR"]   = concat_path("$BASE_DIR/stimulation", cell_gid)
     # single cell definition and per-cell connection functions
-    conf_data["internal"]["cells"]     = "$NETWORK_DIR/{}_cell.csv".format(cell)
-    conf_data["internal"]["con_types"] = "$NETWORK_DIR/{}_func.csv".format(cell)
+    conf_data["internal"]["cells"]     = "$NETWORK_DIR/{}_cell.csv".format(cell_gid)
+    conf_data["internal"]["con_types"] = "$NETWORK_DIR/{}_func.csv".format(cell_gid)
 
     return conf_data
 
-def generate_config(base, filename, out_dir, el_filled, *args, **kwargs):
+def generate_config(base, filename, out_dir, *args, **kwargs):
     """ Per file logic -- modify base config data and then store in new file """
     with open(base, 'r') as fp:
         base_data = json.load(fp)
 
-    data = set_config(copy.deepcopy(base_data), el_filled, *args, **kwargs)
+    data = set_config(copy.deepcopy(base_data), *args, **kwargs)
 
     with open(out_dir + '/' + filename, 'w') as fp:
         json.dump(data, fp, indent=4, separators=(',', ': ')) # print pretty
@@ -78,7 +91,7 @@ def generate_config(base, filename, out_dir, el_filled, *args, **kwargs):
 
 def validate_bconf(bconf):
 
-    must_haves = {'el_range':list, 'cell_gid':int, 'amps':list, 'trial':int, 'stim_type':str}
+    must_haves = {'el_range':list, 'cell_gid':None, 'amps':list, 'trial':int, 'stim_type':str}
 
     for name, t in must_haves.iteritems():
         if name not in bconf:

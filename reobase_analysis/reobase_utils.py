@@ -35,7 +35,7 @@ def format_amp(amp):
     return "{0:.0f}".format( math.fabs(amp * 1000.) )
 
 def format_freq(freq):
-    raise NotImplementedError
+    return "{0:.0f}".format(freq)
 
 def get_table_filename(cell_gid, amp):
     return 'table_{}_amp{}.h5'.format(cell_gid, format_amp(amp))
