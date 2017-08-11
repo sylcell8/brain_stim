@@ -34,6 +34,9 @@ print sargs
 
 print 'Using current amplitude(s): {}'.format(batch_config['amps'])
 
+if 'freqs' in batch_config:
+    print 'Using frequencies: {}'.format(batch_config['freqs'])
+
 prep_confs_folder(confs_folder)
 generate_config_set(config_base, batch_config, confs_folder, verbose=sargs.verbose)
 

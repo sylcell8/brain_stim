@@ -8,33 +8,42 @@ from reobase_utils import *
 #
 
 def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False):
-    """ Parse batch config file and enumerate all run combinations; run checks """
+    """ Parse batch config file and enumerate/use all run combinations; run validation checks """
+
+    validate_bconf(bconf) # try to avoid wonky stuff
+
     cell = bconf['cell_gid']
     el_range = bconf['el_range']
     els = range(el_range[0], el_range[1])
     considerations = [els, bconf['amps']]
-    stim_type = bconf['stim_type'] ## TODO run safety checks based on stim type
+    stim_type = bconf['stim_type']
+    waveform_type = bconf['stim_type'].split('_')[0]
 
+    # key function used for consistent naming
+    key_fn = {
+        'dc': get_dc_key,
+        'sin': get_sin_key,
+    }.get(waveform_type)
 
     # only add freqs if it's there
     if 'freqs' in bconf:
-        print "Set of frequencies passed in config -- be sure you are using a sin waveform! (otherwise you will get many duplicates)"
-        considerations += bconf['freqs']
+        considerations += [bconf['freqs']]
 
+    # empty lists will cause empty product below
     for arr in considerations:
         if len(arr) == 0:
             raise ValueError('Cannot pass empty array as value set in for batch config')
 
+    # TODO support SIN waveform
     for combo in itertools.product(*considerations):
-        if verbose:
-            print get_dc_key(*combo)
-
-        # print combo, considerations, els, bconf
         (electrode, amp) = combo
         el_filled = format_el(electrode)
-        conf_name = 'config_{}.json'.format(get_dc_key(el_filled, amp))
-        generate_config(config_base, conf_name, confs_folder, el_filled, cell, amp,
-                        trial=bconf['trial'], stim_type=stim_type)
+        conf_name = 'config_{}.json'.format(key_fn(el_filled, amp))
+        conf_data = generate_config(config_base, conf_name, confs_folder, el_filled, cell, amp,
+                                    trial=bconf['trial'], stim_type=stim_type)
+
+        if verbose:
+            print 'KEY: ', key_fn(*combo), '   -----   OUTPUT DIR: ', conf_data["manifest"]["$OUTPUT_DIR"]
 
 
 def set_config(conf_data, el, cell, amp, trial=0, stim_type='dc'):
@@ -65,17 +74,30 @@ def generate_config(base, filename, out_dir, el_filled, *args, **kwargs):
     with open(out_dir + '/' + filename, 'w') as fp:
         json.dump(data, fp, indent=4, separators=(',', ': ')) # print pretty
 
-    return filename
+    return data
 
 def validate_bconf(bconf):
-    stim_type = bconf['stim_type']
-    stim_parts = stim_type.split('_')
-    waveform_type = stim_parts[0]
+
+    must_haves = {'el_range':list, 'cell_gid':int, 'amps':list, 'trial':int, 'stim_type':str}
+
+    for name, t in must_haves.iteritems():
+        if name not in bconf:
+            raise ValueError("You are required to include '{}' in the batch configuration".format(name))
+
+        if name == 'cell_gid':
+            if not bconf[name].isdigit():
+                raise ValueError("Invalid cell_gid {}".format(bconf[name]))
+        elif type(bconf[name]) != t:
+            raise ValueError("Invalid type for '{}' ({})".format(name, type(bconf[name])))
+
+    waveform_type = bconf['stim_type'].split('_')[0]
 
     if waveform_type == 'dc':
-        pass
+        if 'freqs' in bconf:
+            raise ValueError("Cannot include 'freqs' key in batch config when using DC input")
     elif waveform_type == 'sin':
-        pass
+        if 'freqs' not in bconf:
+            raise ValueError("Must include 'freqs' list in batch config when using sin input")
     else:
         print 'Cannot validate unknown waveform type {} --I suggest implementing some common sense checks'.format(waveform_type)
 
