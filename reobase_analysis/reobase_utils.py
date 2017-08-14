@@ -5,7 +5,6 @@ import json
 import h5py as h5
 import numpy as np
 import pandas as pd
-import itertools
 
 
 #################################################
@@ -15,9 +14,7 @@ import itertools
 #################################################
 
 def concat_path(*args):
-    """
-    join peices of paths together worry-free
-    """
+    """ Join paths together by parts, worry-free """
     root = args[0]
     is_abs_path = root[0] == '/'
     clean = [str(s).strip('/') for s in args]
@@ -25,26 +22,31 @@ def concat_path(*args):
         clean[0] = '/' + clean[0]
     return '/'.join(clean)
 
-def format_el(el): #idempotent
-    """
-    formatting for el number for cleaner organization
-    """
+def format_el(el):
+    """ Formatting for el number for cleaner organization. Idempotent """
     return str(el).zfill(4)
 
 def format_amp(amp):
-    return "{0:.0f}".format( math.fabs(amp * 1000.) )
+    """ Formatting of amp for easier naming. Idempotent """
+    return amp if type(amp) == str else "{0:.0f}".format( math.fabs(amp * 1000.) )
 
 def format_freq(freq):
-    return "{0:.0f}".format(freq)
+    """ Formatting of freq for naming. Idempotent. """
+    return freq if type(freq) == str else "{0:.0f}".format(freq)
 
 def get_table_filename(cell_gid, amp):
     return 'table_{}_amp{}.h5'.format(cell_gid, format_amp(amp))
 
-def get_reobase_folder(*args):
+def get_dir_root():
+    """ For dealing with different netweork locations on Mac/Linux """
     network_root = '/allen'
     if os.path.isdir('/Volumes'):
         network_root = '/Volumes'
 
+    return network_root
+
+def get_reobase_folder(*args):
+    network_root = get_dir_root()
     return concat_path(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
 
 def get_electrode_path(electrodes_dir, gid, el):
@@ -58,9 +60,7 @@ def get_config_resolved_path(out_folder, el, amp):
 ### DC ###
 
 def get_dc_key(el, amp):
-    """
-    file/folder name code
-    """
+    """ file/folder name code """
     parts = ['el' + format_el(el), 'amp' + format_amp(amp)]
     return '_'.join(parts)
 
@@ -75,9 +75,7 @@ def get_dc_output_dir(cell_gid, el, amp, trial=0):
 ### SIN ###
 
 def get_sin_key(el, amp, freq):
-    """
-    file/folder name code
-    """
+    """ file/folder name code """
     parts = ['el' + format_el(el), 'amp' + format_amp(amp), 'freq' + format_freq(freq)]
     return '_'.join(parts)
 
@@ -137,19 +135,13 @@ def get_cell_xyz(cell_file):  # Ideally you would use the method bionet uses
 
 dc_cols = ['trial', 'electrode', 'x', 'y', 'z', 'distance', 'amp', 'spikes']
 
-def get_table_filename(cell_gid, amp):
-    if np.abs(int(amp)) != amp:
-        # assume it's not formatted yet
-        amp = format_amp(amp)
-
-    return 'table_{}_amp{}.h5'.format(cell_gid, amp)
-
 def resolve_run_id(gid, electrode, amp):
+    """ Unique run id (per stim type) """
     stringified = map(str, [gid, electrode, format_amp(amp)])
     return '_'.join(stringified)  # using current in micro amps
 
 def build_dc_df():
-
+    """ Wrapped df creation to give place to explicitly declare column types """
     df = pd.DataFrame(columns=dc_cols)
     # pd doesn't do a great job of indentifying ints
     df['trial'] = df['trial'].astype(int)
@@ -159,6 +151,7 @@ def build_dc_df():
 
 
 def read_table_h5(fpath):
+    """ h5 to dataframe """
     table = build_dc_df()
 
     with h5.File(fpath, 'r') as f5:
@@ -174,6 +167,8 @@ def read_table_h5(fpath):
 
 
 def write_table_h5(fpath, df):
+    """ dataframe to h5 """
+    df.sort_values('electrode', inplace=True)
     with h5.File(fpath, 'w') as f5:
         f5.create_dataset('ids', data=map(str, df.index))
 
@@ -186,12 +181,14 @@ def write_table_h5(fpath, df):
             spike_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=spike_times)
 
 
-def read_cell_tables(cell_gid, amp_range=range(10, 80, 10),
-                     data_dir=get_reobase_folder('Run_folder/result_tables/')):
+def read_cell_tables(cell_gid, amp_range=[str(x) for x in range(10, 80, 10)],
+                     stim_type='dc',
+                     data_dir=None):
+    """ Read h5 files for a set of amplitudes """
     print "Fetching data..."
 
-    fetch_amps = map(str, amp_range)
-    paths = [concat_path(data_dir, get_table_filename(cell_gid, a)) for a in fetch_amps]
+    data_dir = get_reobase_folder('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
+    paths = [concat_path(data_dir, get_table_filename(cell_gid, a)) for a in amp_range]
 
     t = build_dc_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
@@ -201,11 +198,12 @@ def read_cell_tables(cell_gid, amp_range=range(10, 80, 10),
     return t
 
 
-def read_cell_rows(cell_gid, els, amps,
-                   data_dir=get_reobase_folder('Run_folder/result_tables/')):
-
+def read_cell_rows(cell_gid, els, amps, stim_type='dc',
+                   data_dir=None):
+    """ Read h5 files for a set of amps and electrodes -- faster when considering a small subset of electrodes """
+    data_dir = get_reobase_folder('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
     els = [els] if type(els) is not list else els
-    amps = [amps] if type(amps) is not list else amps
+    amps = [amps] if type(amps) is not list else amps # non-formatted
     data_cols = [x for x in dc_cols if x != 'spikes']
     table = build_dc_df()
 

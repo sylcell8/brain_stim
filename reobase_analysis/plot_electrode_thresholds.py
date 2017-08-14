@@ -7,7 +7,7 @@ import pandas as pd
 #cell_gid = 313862022
 #cell_gid = 314900022
 cell_gid = 320668879
-t = r.read_cell_tables(cell_gid, range(10,80,10))
+t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,20,10)], stim_type='dc_lgn_poisson')
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 t['theta'], t['phi'] = ra.spherical_coords(t)
 
