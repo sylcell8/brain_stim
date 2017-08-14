@@ -3,6 +3,7 @@ import math
 import pandas as pd
 import csv
 import sys, os
+import shutil
 from scipy.spatial.distance import cdist
 
 
@@ -24,33 +25,41 @@ class MeshXElectrode():
 
         cells_file = self.conf["internal"]["cells"]
 
-        self.cells_model_id = pd.read_csv(cells_file, sep = " ", header = "infer")["model_id"]
+        cells_model_id = pd.read_csv(cells_file, sep = " ", header = "infer")["model_id"]
 
         bio_models_file = self.conf["internal"]["cell_models"]
 
         bio_models_df = pd.read_csv(bio_models_file, sep = " ", header = "infer")
 
-        self.model_info = bio_models_df[bio_models_df["model_id"].isin(self.cells_model_id)]
+        self.model_info = bio_models_df[bio_models_df["model_id"].isin(cells_model_id)] #data frame of cell_models.csv
 
-        self.cells_info = self.model_info[["model_id", "morphology"]]
+        # self.cells_info = self.model_info[["model_id", "morphology"]]
 
-        if (len(self.cells_model_id) != len(self.cells_info)):
+        if (len(cells_model_id) != len(self.model_info)):
 
-            print len(self.cells_model_id), len(self.cells_info)
+            print len(cells_model_id), len(self.model_info)
             print "ERROR: NOT ALL CELL MODELS FOUND IN cell_models.csv"
             print "EXITING EXCECUTION NOW"
             sys.exit()
 
-
         self.cell_morph_dir = self.conf["internal"]["bio_morph_dir"]
 
-        self.electrodes_mesh_file_dir = self.conf["extracellular_stimelectrode"]["electrodes_mesh_file_dir"]
+        self.stim_dir = self.conf["manifest"]["$STIM_DIR"]
 
-        self.nonreobase_meshfile = self.conf["extracellular_stimelectrode"]["electrodes_mesh_file_name"]
+        self.nonreobase_meshfile = "stimxmesh.csv" #TODO
 
         self.electrode_mesh = {}
 
         self.n_mesh = {}
+
+
+    def mkdir_reobase_electrode_folder(self):
+
+        for cells in self.model_info["model_id"]:
+            self.eldir = self.stim_dir + "/" + str(cells)
+            if os.path.exists(self.eldir):
+                shutil.rmtree(self.eldir)
+            os.makedirs(self.eldir)
 
 
 
@@ -59,24 +68,20 @@ class MeshXElectrode():
         # Read swc files and find soma position
         self.swc_list = {}
         self.soma_pos = {}
-        self.soma_radius = {}
-        model_id = self.cells_info["model_id"]
-        gid = 0
 
-        for filename in self.cells_info["morphology"]:
-            filepath = self.cell_morph_dir + "/" + filename
-            self.swc_list[model_id[gid]] = pd.read_csv(filepath, header=2, sep = " ",
+        for row in self.model_info.itertuples():
+            model_id = row.model_id
+            morphology_file = row.morphology
+            filepath = self.cell_morph_dir + "/" + morphology_file
+            self.swc_list[model_id] = pd.read_csv(filepath, sep = " ", comment="#",
                                              names = ["id", "type", "x", "y", "z", "r", "pid"])
-            self.soma_pos[model_id[gid]] = self.swc_list[model_id[gid]][self.swc_list[model_id[gid]]["type"] == 1][["x","y","z"]]
-            self.swc_list[model_id[gid]] = self.swc_list[model_id[gid]][["x", "y", "z", "r"]]
+            self.soma_pos[model_id] = self.swc_list[model_id][self.swc_list[model_id]["type"] == 1][["x","y","z"]]
+            self.swc_list[model_id] = self.swc_list[model_id][["x", "y", "z", "r"]]
 
-            if (self.soma_pos[model_id[gid]].empty):
-                print "ERROR: CHECK THE NUMBER OF HEADER LINES FOR SWC OF THIS MODEL_ID:", model_id[gid]
+            if (self.soma_pos[model_id].empty):
+                print "ERROR: SOMA NOT FOUND FOR MODEL_ID:", model_id
                 print "EXITING EXCECUTION NOW"
                 sys.exit()
-
-            gid += 1
-            
 
 
 
@@ -84,13 +89,14 @@ class MeshXElectrode():
 
         swc_movedto_origin = {}
 
-        for model_id in self.soma_pos:
-            # soma_pos = pd.concat([self.soma_pos[model_id]] * len(self.swc_list[model_id]), ignore_index=True)
+        for row in self.model_info.itertuples():
+            model_id = row.model_id
             x = self.swc_list[model_id]["x"] - float(self.soma_pos[model_id]["x"])
             y = self.swc_list[model_id]["y"] - float(self.soma_pos[model_id]["y"])
             z = self.swc_list[model_id]["z"] - float(self.soma_pos[model_id]["z"])
-            swc_movedto_origin[model_id] = pd.DataFrame({"x" : x, "y" : y, "z" : z})
-            file_name = self.electrodes_mesh_file_dir + "/" + str(model_id) + "swc_movedto_origin.csv"
+            r = self.swc_list[model_id]["r"]
+            swc_movedto_origin[model_id] = pd.DataFrame({"x" : x, "y" : y, "z" : z, "r" : r})
+            file_name = self.stim_dir + "/" + str(model_id) + "/" + "swc_movedto_origin.csv"
             with open(file_name, 'w') as f:
                 swc_movedto_origin[model_id].to_csv(f, header=False, sep=' ', index=False)
 
@@ -105,8 +111,6 @@ class MeshXElectrode():
         make a spherical mesh around 0,0,0
         For this it requires the total number of mesh points, rmin, rmax and rstep
         """
-
-        #Check rmin and rmax and see how many spheres we have
         print "check that: rmin < rmax)"
         print "check that: (rmax - rmin) > rstep"
 
@@ -148,7 +152,7 @@ class MeshXElectrode():
 
             sphere_count += 1
 
-        file_name = self.electrodes_mesh_file_dir + "/" + "original_mesh.csv"
+        file_name = self.stim_dir + "/" + "original_mesh.csv"
         with open(file_name, 'w') as f:
             grid_xyz.to_csv(f, header=False, sep=' ', index=False)
 
@@ -162,17 +166,25 @@ class MeshXElectrode():
         grid = self.make_spherical_mesh()
         swc_movedto_origin = self.move_swc_to_origin()
 
-        for model_id in self.soma_pos:
-            # print self.swc_list[model_id]["r"]
+        for row in self.model_info.itertuples():
 
-            file_name = self.electrodes_mesh_file_dir + "/" + str(model_id) + "stimXelectrodes.csv"
+            model_id = row.model_id
+            file_name = self.stim_dir + "/" + str(model_id) + "/" + "stimXelectrodes.csv"
+            coor = swc_movedto_origin[model_id][["x","y","z"]]
 
-            dist = cdist(grid, swc_movedto_origin[model_id], metric='euclidean')
+            dist = cdist(grid, coor, metric='euclidean')
             min_dist = dist.min(axis=1)
 
+            nearest_seg_index = []
+
+            for el in range(len(grid)):
+                nearest_seg_index.append(np.where (dist[el] == min_dist[el])[0][0])
+
+            min_dist = min_dist - swc_movedto_origin[model_id]["r"][nearest_seg_index]
 
             selected_elpoints = np.where(min_dist >= self.min_dist_tocell)[0]
             selected_grid = [grid.iloc[i] for i in selected_elpoints]
+
             if (selected_elpoints.size == 0):
                 print "All the points are closer than ", self.min_dist_tocell , "to some cell's part"
                 print "Choose a smaller rmin"
@@ -182,7 +194,7 @@ class MeshXElectrode():
                 final_df.to_csv(f, header= False, sep = ' ', index=False)
 
             for el in range(len(final_df)):
-                file_name3 = self.electrodes_mesh_file_dir + "/" + str(model_id) + "_" + str(el).zfill(4) + ".csv"
+                file_name3 = self.stim_dir + "/" + str(model_id) + "/"+ str(model_id) + "_" + str(el).zfill(4) + ".csv"
                 with open(file_name3, 'w') as f3:
                     writer = csv.writer(f3, delimiter=' ')
                     writer.writerow(["ip", "electrode_mesh_file", "pos_x", "pos_y", "pos_z",
