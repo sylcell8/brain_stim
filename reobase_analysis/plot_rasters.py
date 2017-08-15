@@ -5,8 +5,9 @@ import reobase_utils as r
 #cell_gid = 313862022
 cell_gid = 314900022
 #cell_gid = 313862022
-t = r.read_cell_tables(cell_gid, range(10,101,10))
-t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
+stim_type = 'dc_lgn_poisson'
+
+t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,61,10)], stim_type=stim_type)
 
 #%% find raster for a given el, amp
 

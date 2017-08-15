@@ -1,11 +1,13 @@
 #import os,sys
 import glob
 import numpy as np
-import reobase_analysis.generate_utils as g
 import reobase_analysis.tchelpers as tc
 import reobase_analysis.reobase_utils as ru
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 
+#import cProfile, pstats, io
+#pr = cProfile.Profile()
+#pr.enable()
 
 """
 Script to build h5 files containing organized run info for all runs of a particular amplitude
@@ -14,23 +16,22 @@ Will include all electrodes. Has no overwrite protection
 
 ### Params ###
 #gid = '313862022'
-#gid = '314900022'
-gid = '320668879'
+gid = '314900022'
+#gid = '320668879'
 stim_type = 'dc_lgn_poisson'
 #inputs = [-0.01,-0.02,-0.03,-0.04,-0.05]
-#inputs = [-0.06,-0.07,-0.08,-0.09,-0.10]
-inputs = [-0.09,-0.10]
+inputs = [-0.06,-0.07,-0.08,-0.09,-0.10]
 trial = 0
 cell_csv_pattern = '/*_cell.csv'
 
 
 # Get on with it...
-table = ru.build_dc_df()
 cell_out_dir = ru.get_reobase_folder('Run_folder/outputs', stim_type, gid)
 
 for amp in inputs:
+    
     print 'Build table for amp = {}...'.format(amp)
-
+    table = ru.build_dc_df()
     amp_output = ru.concat_path(cell_out_dir, ru.get_dc_dir_name(9999,amp,trial)).replace('9999', '*')
 
     for out_folder in glob.iglob(amp_output):
@@ -51,8 +52,11 @@ for amp in inputs:
         el_dist = np.linalg.norm(el_xyz - cell_xyz)
         run_id = ru.resolve_run_id(gid, el, amp)
     
-    
-        table.loc[run_id] = [trial, el, el_xyz[0], el_xyz[1], el_xyz[2], el_dist, amp, spikes]
+        try:
+            table.loc[run_id] = [trial, el, el_xyz[0], el_xyz[1], el_xyz[2], el_dist, amp, spikes]
+        except:
+            print run_id, [trial, el, el_xyz[0], el_xyz[1], el_xyz[2], el_dist, amp, spikes]
+            raise
 
     print 'Data collected. Writing h5...'
     fpath = ru.get_reobase_folder('Run_folder/result_tables', stim_type, ru.get_table_filename(gid, amp))
@@ -62,6 +66,11 @@ for amp in inputs:
 
 
 
+## Profiler output
+#pr.disable()
+#sortby = 'cumulative'
+#ps = pstats.Stats(pr).strip_dirs().sort_stats(sortby)
+#ps.print_stats()
 
 
 

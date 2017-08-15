@@ -115,6 +115,10 @@ def get_spikes_data(out_path):
     cellvars = get_cv_files(out_path, cells=[0])[0]
     return cellvars['spikes'].value
 
+def get_spikes_data2(out_path):
+    spikes = pd.rea
+    cellvars = get_cv_files(out_path, cells=[0])[0]
+    return cellvars['spikes'].value
 
 def get_electrode_xyz(electrode_pos_path):  # Ideally you would use the method bionet uses
     # mesh files are unnecessary for this study

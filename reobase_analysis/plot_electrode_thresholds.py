@@ -7,11 +7,11 @@ import pandas as pd
 #cell_gid = 313862022
 #cell_gid = 314900022
 cell_gid = 320668879
-t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,20,10)], stim_type='dc_lgn_poisson')
-t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
+t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,60,10)], stim_type='dc_lgn_poisson')
 t['theta'], t['phi'] = ra.spherical_coords(t)
 
 #%% Find threshold
+## Only really makes sense for data with absent or subthreshold external input
 thresholds = ra.find_thresholds(t)
 # Choose upper value of range
 el_th = []

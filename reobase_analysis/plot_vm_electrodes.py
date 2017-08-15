@@ -5,9 +5,9 @@ import reobase_analysis.reobase_utils as ru
 import reobase_analysis.analysis as ra
 
 #%% Compare different electrodes
-def plot_els(cell_gid, amp, els, trial=0):
+def plot_els(cell_gid, amp, els, stim_type='dc', trial=0):
 #    t = ru.read_cell_tables(cell_gid, [ru.format_amp(amp)])
-    t = ru.read_cell_rows(cell_gid, els, amp)
+    t = ru.read_cell_rows(cell_gid, els, amp, stim_type=stim_type)
     t = t[t['electrode'].isin(els)]
     t['theta'], t['phi'] = ra.spherical_coords(t)
     t['theta'] = t['theta']/np.pi # to give angle in terms of pi
@@ -38,14 +38,14 @@ def plot_els(cell_gid, amp, els, trial=0):
     
 print "Try running: 'plot(313862022, -0.03, range(20,41,4))'"
 
-plot_els(313862022, -0.02, [409,420,265,264])
-plot_els(313862022, -0.06, [409,420,265,264])
+#plot_els(313862022, -0.02, [409,420,265,264])
+#plot_els(313862022, -0.06, [409,420,265,264])
+#
+#plot_els(314900022, -0.08, [543,542,474,475])
+#plot_els(314900022, -0.02, [543,542,474,475])
 
-plot_els(314900022, -0.08, [543,542,474,475])
-plot_els(314900022, -0.02, [543,542,474,475])
-
-plot_els(320668879, -0.02, [419,420,333,332])
-plot_els(320668879, -0.06, [419,420,333,332])
+plot_els(320668879, -0.02, [419,420,333,332], stim_type='dc_lgn_poisson')
+plot_els(320668879, -0.06, [419,420,333,332], stim_type='dc_lgn_poisson')
 
 #%% Compare different amplitudes
 def plot_amps(cell_gid, amps, el, trial=0):

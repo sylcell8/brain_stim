@@ -3,8 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import reobase_utils as ru
 
-cell_gid = 313862022
-t = ru.read_cell_tables(cell_gid)
+cell_gid = [313862022, 314900022, 320668879][1]
+stim_type='dc_lgn_poisson'
+
+t = ru.read_cell_tables(cell_gid, stim_type=stim_type)
 # add num spikes
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 
