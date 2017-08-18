@@ -3,20 +3,19 @@ import matplotlib.pyplot as plt
 import reobase_utils as ru
 from mpl_toolkits.mplot3d import Axes3D
 
-fpath = '/Volumes/aibs/mat/Taylorc/test_table.h5'
-cell_gid = 313862022
-t = ru.read_cell_tables(cell_gid, [30,40])
+cell_gid = [313862022, 314900022, 320668879][1]
+t = ru.read_cell_tables(cell_gid, [str(x) for x in [30,40]], stim_type='dc_lgn_poisson')
 
 #%% Do morphology stuff
 
-from allensdk.core.cell_types_cache import CellTypesCache
-ctc = CellTypesCache(manifest_file='cell_types/manifest.json')
-morphology = ctc.get_reconstruction(cell_gid)
-soma = morphology.compartment_index[0]
+#from allensdk.core.cell_types_cache import CellTypesCache
+#ctc = CellTypesCache(manifest_file='cell_types/manifest.json')
+#morphology = ctc.get_reconstruction(cell_gid)
+#soma = morphology.compartment_index[0]
 
-# soma -- NOT A REAL RADIUS
+# soma sphere model
 u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-r = soma['radius']
+r = 7 #soma['radius']
 x = r * np.cos(u)*np.sin(v)
 y = r * np.sin(u)*np.sin(v)
 z = r * np.cos(v)

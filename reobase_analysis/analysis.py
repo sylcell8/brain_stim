@@ -5,10 +5,17 @@ import numpy as np
 from enum import Enum
 
 # Enumerate stim types to use as source of truth
-StimType = Enum('stim_type', {
-    'DC':'dc',
-    'DC_LGN_POISSON':'dc_lgn_poisson',
-})
+# StimType = Enum('stim_type', {
+#     'DC':'dc',
+#     'DC_LGN_POISSON':'dc_lgn_poisson',
+# })
+
+class StimType(Enum):
+    DC = 'dc'
+    DC_LGN_POISSON = 'dc_lgn_poisson'
+
+    def __str__(self):
+        return str(self.value)
 
 def spherical_coords(df):
     rho = np.sqrt(df.x ** 2 + df.y ** 2)
