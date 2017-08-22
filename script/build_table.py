@@ -1,12 +1,17 @@
 import argparse
 from reobase_analysis.build_table import *
 
+"""
+This script is a wrapper for reobase_analysis/build_table.py to allow running on command line.
+Only input parsing/validation is done here.
+One difference is that inputs may be given in print format instead of explicit format (10 instead of -0.01)
+"""
 # args
 parser = argparse.ArgumentParser()
-parser.add_argument("cell_gid", help="cell gid, e.g. {}".format(default_gid), type=int)
+parser.add_argument("cell_gid", help="cell gid, e.g. 313862022, 314900022, or 320668879", type=int)
 parser.add_argument("stim_type", help="stimulus type, e.g. 'dc', 'dc_lgn_poisson'")
 # optional
-parser.add_argument("-i", "--inputs", help="input values. may provide many. may use normal or display form for values, e.g. -0.06 == 60", default=default_inputs,nargs='+', type=float)
+parser.add_argument("-i", "--inputs", help="input values. may provide many. may use normal or display form for values, e.g. -0.06 == 60. Default is 10,20,...,100", default=default_inputs,nargs='+', type=float)
 parser.add_argument("-t", "--trial", help="trial number for output folders, default 0", type=int, default=0)
 sargs = parser.parse_args()
 

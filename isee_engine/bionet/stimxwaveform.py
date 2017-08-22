@@ -98,7 +98,7 @@ def stimx_waveform_factory(conf):
     """
     Factory to create correct waveform class based on conf.
     Supports json config in conf as well as string pointer to a file.
-    :rtype: BaseWaveform
+    :rtype: BaseWaveformType
     """
     waveform_conf = conf["extracellular_stimelectrode"]["waveform"]
 

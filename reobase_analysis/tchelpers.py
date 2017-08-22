@@ -43,11 +43,6 @@ mlb.rcParams.update({
 #
 #################################################
 
-def calc_xticks(tlimits,ticksEvery):
-    xtick_location = np.arange(tlimits[0], tlimits[1] + 1, ticksEvery)
-    xtick_labels = map(lambda t: str(t / 1000.), xtick_location)
-    return xtick_location, xtick_labels
-
 
 def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 7),
                                 ticks_every=500, show_legend=True, **kwargs):
@@ -122,6 +117,41 @@ def get_cell_morphology_plot(cell_id, size=(10,10), ax=None):
 
     return ax
 
+#################################################
+#
+#     Axis labels and ticks
+#
+#################################################
+
+zero_to_pi_range = np.arange(-np.pi, np.pi + 0.1, np.pi / 2)
+zero_to_pi_labels = ['$-\pi$', '$-\pi /2$', '$0$', '$\pi /2$', '$\pi$']
+
+def set_theta_ticks(ax, xy='x'):
+    if xy == 'x':
+        ax.set_xticks(zero_to_pi_range[2:])
+        ax.set_xticklabels(zero_to_pi_labels[2:])
+    else:
+        ax.set_yticks(zero_to_pi_range[2:])
+        ax.set_yticklabels(zero_to_pi_labels[2:])
+
+    return ax
+
+
+def set_phi_ticks(ax, xy='x'):
+    if xy == 'x':
+        ax.set_xticks(zero_to_pi_range)
+        ax.set_xticklabels(zero_to_pi_labels)
+    else:
+        ax.set_yticks(zero_to_pi_range)
+        ax.set_yticklabels(zero_to_pi_labels)
+
+    return ax
+
+
+def calc_xticks(tlimits,ticksEvery):
+    xtick_location = np.arange(tlimits[0], tlimits[1] + 1, ticksEvery)
+    xtick_labels = map(lambda t: str(t / 1000.), xtick_location)
+    return xtick_location, xtick_labels
 
 #################################################
 #

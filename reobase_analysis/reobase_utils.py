@@ -116,7 +116,9 @@ def get_spikes_data(out_path):
     return cellvars['spikes'].value
 
 def get_spikes_data2(out_path):
-    spikes = pd.rea
+    ## UNTESTED! hopgin this will be faster than using cv files.......
+    ## TODO finish
+    spikes = pd.read_csv(concat_path(out_path,'spikes.txt'), ' ')
     cellvars = get_cv_files(out_path, cells=[0])[0]
     return cellvars['spikes'].value
 
@@ -138,16 +140,17 @@ def get_cell_xyz(cell_file):  # Ideally you would use the method bionet uses
 #################################################
 
 dc_cols = ['trial', 'electrode', 'x', 'y', 'z', 'distance', 'amp', 'spikes']
+vm_cols = ['vm_stim', 'delta_vm']
 
 def resolve_run_id(gid, electrode, amp):
     """ Unique run id (per stim type) """
     stringified = map(str, [gid, electrode, format_amp(amp)])
     return '_'.join(stringified)  # using current in micro amps
 
-def build_dc_df():
+def build_dc_df(additional_cols=[]):
     """ Wrapped df creation to give place to explicitly declare column types """
-    df = pd.DataFrame(columns=dc_cols)
-    # pd doesn't do a great job of indentifying ints
+    df = pd.DataFrame(columns=(dc_cols + additional_cols))
+    # pd doesn't do a great job of identifying ints
     df['trial'] = df['trial'].astype(int)
     df['electrode'] = df['electrode'].astype(int)
 
@@ -156,21 +159,26 @@ def build_dc_df():
 
 def read_table_h5(fpath):
     """ h5 to dataframe """
-    table = build_dc_df()
 
     with h5.File(fpath, 'r') as f5:
+        extra_cols = vm_cols if 'has_vm_data' in f5.attrs and f5.attrs['has_vm_data'] else []
+        table = build_dc_df(extra_cols)
         ids = f5['ids'].value
         spike_data = f5['spikes']
 
         for i, rid in enumerate(ids):  # i is key for f5 dsets, rid is key for spikes & df
-            data_cols = [x for x in dc_cols if x != 'spikes']
+            data_cols = (dc_cols + extra_cols)
+            spike_index = data_cols.index('spikes')
+            data_cols.pop(spike_index)
             data = [f5[c][i] for c in data_cols]
-            table.loc[rid] = data + [spike_data[rid].value]
+            # place spikes in correct position
+            data.insert(spike_index, spike_data[rid].value)
+            table.loc[rid] = data
 
     return table
 
 
-def write_table_h5(fpath, df):
+def write_table_h5(fpath, df, attrs=None):
     """ dataframe to h5 """
     df.sort_values('electrode', inplace=True)
     with h5.File(fpath, 'w') as f5:
@@ -184,9 +192,12 @@ def write_table_h5(fpath, df):
         for (rid, spike_times) in df.spikes.iteritems():
             spike_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=spike_times)
 
+        if attrs is not None:
+            for k,v in attrs.iteritems():
+                f5.attrs[k] = v
 
-def read_cell_tables(cell_gid, amp_range=[str(x) for x in range(10, 80, 10)],
-                     stim_type='dc',
+
+def read_cell_tables(cell_gid, amp_range, stim_type,
                      data_dir=None):
     """ Read h5 files for a set of amplitudes """
     print "Fetching data..."
@@ -204,7 +215,10 @@ def read_cell_tables(cell_gid, amp_range=[str(x) for x in range(10, 80, 10)],
 
 def read_cell_rows(cell_gid, els, amps, stim_type='dc',
                    data_dir=None):
-    """ Read h5 files for a set of amps and electrodes -- faster when considering a small subset of electrodes """
+    """
+    Read h5 files for a set of amps and electrodes -- faster when considering a small subset of electrodes
+    Doesn't use read_table_h5--it actually interfaces with h5 file.
+    """
     data_dir = get_reobase_folder('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
     els = [els] if type(els) is not list else els
     amps = [amps] if type(amps) is not list else amps # non-formatted

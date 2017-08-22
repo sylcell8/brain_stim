@@ -2,12 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import reobase_utils as r
 
-#cell_gid = 313862022
-cell_gid = 314900022
-#cell_gid = 313862022
-stim_type = 'dc_lgn_poisson'
+cell_gid = [313862022, 314900022, 320668879][1]
+stim_type = ['dc','dc_lgn_poisson'][0]
 
-t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,61,10)], stim_type=stim_type)
+t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,20,10)], stim_type=stim_type)
 
 #%% find raster for a given el, amp
 
