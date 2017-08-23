@@ -95,7 +95,7 @@ def get_spikes_raster_plot(output, size=None, ax=None, ticksEvery=500, **kwargs)
     ax.set_yticklabels(['cell_' + str(c) for c in cells])
 
     if all([x.value.size == 0 for x in f_spikes.values()]):
-        plt.text(tstart+(1./3)*(tstop-tstart), 0.9, 'No spikes recorded', fontsize=15)
+        ax.text(0.4, 0.5, 'No spikes recorded', fontsize=15, transform=ax.transAxes)
 
     return ax
 

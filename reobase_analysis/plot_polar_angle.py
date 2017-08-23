@@ -15,7 +15,7 @@ tdc['theta'], tdc['phi'] = ra.spherical_coords(tdc)
 
 #%%
 
-def plot_spikes_polar_angle(t, amp, col_name = 'num_spikes', nbins=14):
+def plot_spikes_polar_angle(t, amp, col_name='num_spikes', nbins=14):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('"{}" distribution by polar angle $\Theta$ (amp = {})'.format(col_name, amp))

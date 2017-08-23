@@ -25,6 +25,7 @@ default_gid = [313862022, 314900022, 320668879][0]
 default_inputs = [-0.01,-0.02,-0.03,-0.04,-0.05,-0.06,-0.07,-0.08,-0.09,-0.10]
 default_stim_type = StimType.DC_LGN_POISSON
 
+
 def build(cell_gid, inputs, stim_type, trial=0):
     cell_csv_pattern = '/*_cel[ls]*csv' # ridiculous pattern matching for old files called 1_cell.csv vs new ones called [gid].csv
     cell_out_dir = ru.get_reobase_folder('Run_folder/outputs', stim_type, cell_gid)
@@ -74,10 +75,11 @@ def extract_vm_data(cvh5, delay, dur):
     dt = cvh5.attrs['dt']
     vm = cvh5['vm'].value
     spikes = cvh5['spikes'].value
-    vm_rest = vm[int((delay - 50) / dt)]
+    get_step = lambda x: int(x / dt)
+    vm_rest = vm[get_step(delay - 500):get_step(delay - 5)].mean()
 
     if len(spikes) < 2: # ensure subthreshold or edge case
-        vm_stim = vm[int((delay + dur - 50) / dt)]
+        vm_stim = vm[get_step(delay + dur - 500):get_step(delay + dur - 5)].mean()
     else:
         vm_stim = np.NaN
 
