@@ -62,5 +62,6 @@ def default():
         plot(g, amp, col_name='delta_vm')
 
 
+print 'For an example try default() function'
 
 # default()

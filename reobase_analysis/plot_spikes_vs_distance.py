@@ -1,12 +1,11 @@
-#import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import reobase_utils as ru
+from reobase_analysis.analysis import StimType
 
 cell_gid = [313862022, 314900022, 320668879][1]
-stim_type='dc_lgn_poisson'
+stim_type=StimType.DC_LGN_POISSON
 
-t = ru.read_cell_tables(cell_gid, stim_type=stim_type)
+t = ru.read_cell_tables(cell_gid, [40], stim_type=stim_type)
 # add num spikes
 t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 

@@ -36,7 +36,7 @@ def plot_els(cell_gid, amp, els, stim_type='dc', trial=0):
     plt.show()
     
     
-print "Try running: 'plot(313862022, -0.03, range(20,41,4))'"
+print "Try running: 'plot(313862022, -0.03, range(20,41,4), stim_type='dc')'"
 
 #plot_els(313862022, -0.02, [409,420,265,264])
 #plot_els(313862022, -0.06, [409,420,265,264])
@@ -44,8 +44,8 @@ print "Try running: 'plot(313862022, -0.03, range(20,41,4))'"
 #plot_els(314900022, -0.08, [543,542,474,475])
 #plot_els(314900022, -0.02, [543,542,474,475])
 
-plot_els(320668879, -0.02, [419,420,333,332], stim_type='dc_lgn_poisson')
-plot_els(320668879, -0.06, [419,420,333,332], stim_type='dc_lgn_poisson')
+# plot_els(320668879, -0.02, [419,420,333,332], stim_type='dc_lgn_poisson')
+# plot_els(320668879, -0.06, [419,420,333,332], stim_type='dc_lgn_poisson')
 
 #%% Compare different amplitudes
 def plot_amps(cell_gid, amps, el, trial=0):

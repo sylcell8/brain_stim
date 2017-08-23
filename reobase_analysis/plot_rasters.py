@@ -1,11 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import reobase_utils as r
+from reobase_analysis.analysis import StimType
 
-cell_gid = [313862022, 314900022, 320668879][1]
-stim_type = ['dc','dc_lgn_poisson'][0]
 
-t = r.read_cell_tables(cell_gid, [str(x) for x in range(10,20,10)], stim_type=stim_type)
 
 #%% find raster for a given el, amp
 
@@ -31,7 +29,7 @@ def build_raster_data(t, slice_feature, value, y_feature):
 #%% electrode spike raster for specific amp
 
     
-def plot_amp(amp):
+def plot_amp(t, amp):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     xs, ys, dist = build_raster_data(t, 'amp', amp, 'electrode')
@@ -44,9 +42,17 @@ def plot_amp(amp):
     ax.set_ylabel('Electrode')
     plt.show()
 
-for a in t.amp.unique():
-    plot_amp(a)
 
+def default():
+    cell_gid = [313862022, 314900022, 320668879][1]
+    stim_type = StimType.DC
+    amp_range = [str(x) for x in range(10, 20, 10)]
+
+    t = r.read_cell_tables(cell_gid, amp_range, stim_type=stim_type)
+    for a in t.amp.unique():
+        plot_amp(t, a)
+
+print 'For an example try default() function'
 
 # amp spike raster for specific electrode
 #def plot_el(el):
