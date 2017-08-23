@@ -1,5 +1,7 @@
 """
-Place to hold analysis functions
+Place to hold analysis functions. 
+Any transformation / operation of the data tables would fit, as well as any 
+sources of truth for values used throughout the analysis/plot and util files.
 """
 import numpy as np
 from enum import Enum

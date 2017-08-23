@@ -1,6 +1,10 @@
 import numpy as np
 import random as rand
 
+"""
+Creates poisson spike trains. Algorithm taken from Dayan and Abbott
+Currently only works for constant firing rate
+"""
 
 def homogeneous(r, T):
     """

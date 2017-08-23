@@ -1,6 +1,11 @@
 import argparse
 from reobase_analysis.generate_utils import *
 
+"""
+Command line script for generating config files.
+Most of the input validation is done on batch_config entries, thus done in generate_utils
+"""
+
 # args
 parser = argparse.ArgumentParser()
 parser.add_argument("config_base", help="config file to use as template")
@@ -13,6 +18,8 @@ sargs = parser.parse_args()
 
 confs_folder = 'confs'
 config_base = sargs.config_base
+
+# TODO allow batch_config filename to be passed in as argument and read, not edited here
 batch_config = {
     "el_range": [0, sargs.number_el],
     "cell_gid": sargs.cell_gid,

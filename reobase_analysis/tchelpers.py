@@ -6,6 +6,15 @@ from allensdk.core.cell_types_cache import CellTypesCache
 
 from reobase_utils import *
 
+"""
+A set of plots and plot helpers. More useful and important to build are the 
+plot helpers, which then you can use over and over to build a particular axis 
+to modify a particular axis' ticks or legend or something.
+Best for the top level implementation to sit in the analysis file for any important plot.
+NOTE: importing this script will change your MPL defaults. See the customzing section below
+TODO: change the name :)
+"""
+
 
 #################################################
 #

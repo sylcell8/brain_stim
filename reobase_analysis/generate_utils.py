@@ -3,10 +3,11 @@ import copy
 from reobase_utils import *
 import itertools
 
-
-#
-#  For generating batches of config files
-#
+"""
+Set of functions strictly for generating batches of config files. The separation from reobase_utils is a bit arbitrary,
+but the functions are long as stand on their own. It should be separate from the script however, because then this 
+logic is reusable by another script if required (e.g. a parallel batch run script or something)
+"""
 
 def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False):
     """ Parse batch config file and enumerate/use all run combinations; run validation checks """

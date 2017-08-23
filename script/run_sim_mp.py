@@ -2,6 +2,10 @@ import argparse
 import multiprocessing as mp
 import os
 
+"""
+Unused.... an idea for a parallel version of the sim runner
+"""
+
 # args
 parser = argparse.ArgumentParser()
 parser.add_argument("run_script", help="location of script to pass config files to")

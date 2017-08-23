@@ -6,6 +6,12 @@ import h5py as h5
 import numpy as np
 import pandas as pd
 
+"""
+Many utils. Most are for building paths or file names or dealing with IO. 
+These functions solidify the contract between the data and the simulation/analysis and are used everywhere that data 
+is used--so best to be careful when changing the contract. 
+Ideally utils are as small as possible--a single unit of work--so that you can easily compose them.
+"""
 
 #################################################
 #
