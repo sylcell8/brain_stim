@@ -6,16 +6,36 @@ sources of truth for values used throughout the analysis/plot and util files.
 import numpy as np
 from enum import Enum
 
+
+#################################################
+#
+#     Enumerated constant values
+#
+#################################################
+
+class Type(Enum):
+    def __str__(self):
+        return str(self.value)
+
+
 # Enumerate stim types to use as source of truth
-class StimType(Enum):
+class StimType(Type):
     DC = 'dc'
     DC_LGN_POISSON = 'dc_lgn_poisson'
 
-    def __str__(self):
-        return str(self.value)
-    #
-    # def __eq__(self, other):
-    #     return self.value == other if isinstance(other, (str, unicode)) else self == other
+
+# Enumerate model types to use as source of truth
+class ModelType(Type):
+    PERISOMATIC = 'perisomatic'
+    ACTIVE      = 'all_active'
+    PASSIVE     = 'passive'
+    FAHIMEH     = 'fahimeh_passive'
+
+#################################################
+#
+#     Analysis
+#
+#################################################
 
 def spherical_coords(df):
     rho = np.sqrt(df.x ** 2 + df.y ** 2)

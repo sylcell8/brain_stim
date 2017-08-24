@@ -1,10 +1,8 @@
-#import os,sys
 import glob
 import numpy as np
-import pandas as pd
 import itertools
 import reobase_analysis.reobase_utils as ru
-from reobase_analysis.analysis import StimType
+from reobase_analysis.analysis import StimType, ModelType
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 
 #import cProfile, pstats, io
@@ -28,7 +26,7 @@ default_stim_type = StimType.DC_LGN_POISSON
 
 def build(cell_gid, inputs, stim_type, trial=0):
     cell_csv_pattern = '/*_cel[ls]*csv' # ridiculous pattern matching for old files called 1_cell.csv vs new ones called [gid].csv
-    cell_out_dir = ru.get_reobase_folder('Run_folder/outputs', stim_type, cell_gid)
+    cell_out_dir = ru.get_output_dir(stim_type, ModelType.PERISOMATIC, cell_gid)
     include_delta_vm = stim_type == StimType.DC.value
 
     for amp in inputs:
@@ -66,7 +64,7 @@ def build(cell_gid, inputs, stim_type, trial=0):
 
         filename = ru.get_table_filename(cell_gid, amp)
         print 'Data collected. Writing to {}...'.format(filename)
-        fpath = ru.get_reobase_folder('Run_folder/result_tables', stim_type, filename)
+        fpath = ru.get_reobase_dir('Run_folder/result_tables', stim_type, filename)
         ru.write_table_h5(fpath, table, attrs={'has_vm_data':include_delta_vm,'vm_rest': vm_rest})
         print 'Done.'
 

@@ -9,7 +9,7 @@ gid = 314900022
 
 def plot(el, amp, cell_gid):
 
-    example_dir = ru.get_reobase_folder('Run_folder/outputs/dc/', str(gid), ru.get_dc_dir_name(el, amp, 0))
+    example_dir = ru.get_reobase_dir('Run_folder/outputs/dc/', str(gid), ru.get_dc_dir_name(el, amp, 0))
     conf = ru.get_json_from_file(ru.get_config_resolved_path(example_dir, el, amp))
     waveform = stimx_waveform_factory(conf)
     

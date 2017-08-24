@@ -5,6 +5,7 @@ import json
 import h5py as h5
 import numpy as np
 import pandas as pd
+from analysis import StimType, ModelType
 
 """
 Many utils. Most are for building paths or file names or dealing with IO. 
@@ -51,13 +52,17 @@ def get_dir_root():
 
     return network_root
 
-def get_reobase_folder(*args):
+def get_reobase_dir(*args):
     network_root = get_dir_root()
     return concat_path(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
 
+def get_output_dir(stim_type, model_type, cell_gid, *args):
+    """ Get dir containing runs for given params """
+    reobase_dir = get_reobase_dir()
+    return concat_path(reobase_dir, 'Run_folder/outputs/', stim_type, model_type, cell_gid, *args)
+
 def get_electrode_path(electrodes_dir, gid, el):
     return concat_path(electrodes_dir, str(gid) + '_' + format_el(el) + '.csv')
-
 
 def get_config_resolved_path(out_folder, el, amp):
     key = get_dc_key(el, amp)
@@ -73,10 +78,10 @@ def get_dc_key(el, amp):
 def get_dc_dir_name(el, amp, trial):
     return '_'.join( [get_dc_key(el, amp), 'tr' + str(trial)] )
 
-def get_dc_output_dir(cell_gid, el, amp, trial=0):
-    root = get_reobase_folder('Run_folder/outputs/dc/', cell_gid)
+def get_dc_output_dir(cell_gid, el, amp, model_type=ModelType.PERISOMATIC, trial=0):
+    root_dir = get_output_dir(StimType.DC, model_type, cell_gid)
     out_dir = get_dc_dir_name(el, amp, trial)
-    return concat_path(root, out_dir)
+    return concat_path(root_dir, out_dir)
 
 ### SIN ###
 
@@ -88,10 +93,10 @@ def get_sin_key(el, amp, freq):
 def get_sin_dir_name(el, amp, freq, trial):
     return '_'.join( [get_sin_key(el, amp, freq), 'tr' + str(trial)] )
 
-def get_sin_output_dir(cell_gid, el, amp, freq, trial=0):
-    root = get_reobase_folder('Run_folder/outputs/sin/', cell_gid)
+def get_sin_output_dir(cell_gid, el, amp, freq, model_type=ModelType.PERISOMATIC, trial=0):
+    root_dir = get_output_dir(StimType.SIN, model_type, cell_gid)
     out_dir = get_sin_dir_name(el, amp, freq, trial)
-    return concat_path(root, out_dir)
+    return concat_path(root_dir, out_dir)
 
 #################################################
 #
@@ -208,7 +213,7 @@ def read_cell_tables(cell_gid, amp_range, stim_type,
     """ Read h5 files for a set of amplitudes """
     print "Fetching data..."
 
-    data_dir = get_reobase_folder('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
+    data_dir = get_reobase_dir('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
     paths = [concat_path(data_dir, get_table_filename(cell_gid, a)) for a in amp_range]
 
     t = build_dc_df()  # do this for code analysis
@@ -225,7 +230,7 @@ def read_cell_rows(cell_gid, els, amps, stim_type='dc',
     Read h5 files for a set of amps and electrodes -- faster when considering a small subset of electrodes
     Doesn't use read_table_h5--it actually interfaces with h5 file.
     """
-    data_dir = get_reobase_folder('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
+    data_dir = get_reobase_dir('Run_folder/result_tables/', stim_type) if data_dir is None else data_dir
     els = [els] if type(els) is not list else els
     amps = [amps] if type(amps) is not list else amps # non-formatted
     data_cols = [x for x in dc_cols if x != 'spikes']
