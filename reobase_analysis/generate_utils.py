@@ -19,6 +19,7 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
     els = range(el_range[0], el_range[1])
     considerations = [els, bconf['amps']]
     stim_type = bconf['stim_type']
+    model_type = bconf['model_type']
     waveform_type = bconf['stim_type'].split('_')[0]
 
     # key function used for consistent naming
@@ -55,13 +56,13 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
 
         conf_name = 'config_{}.json'.format(key)
         conf_data = generate_config(config_base, conf_name, confs_folder,
-                                    el, cell, run_folder, waveform_props, stim_type)
+                                    el, cell, run_folder, waveform_props, stim_type, model_type)
 
         if verbose:
             print 'KEY: ', key, '   -----   OUTPUT DIR: ', conf_data["manifest"]["$OUTPUT_DIR"]
 
 
-def set_config(conf_data, el, cell_gid, run_folder, waveform_props, stim_type):
+def set_config(conf_data, el, cell_gid, run_folder, waveform_props, stim_type, model_type):
     """ Lots of config settings are cell specific or input specific--all changes to the conf file should go here """
     cell_gid = str(cell_gid)
     # run_folder = get_dc_dir_name(el, amp, trial)
@@ -70,7 +71,7 @@ def set_config(conf_data, el, cell_gid, run_folder, waveform_props, stim_type):
     conf_data["extracellular_stimelectrode"]["waveform"].update(waveform_props)
     # Note: output dir doesn't include current sign
     outdir_root = conf_data["manifest"]["$OUTPUT_DIR"]
-    conf_data["manifest"]["$OUTPUT_DIR"] = concat_path(outdir_root, stim_type, cell_gid, run_folder)
+    conf_data["manifest"]["$OUTPUT_DIR"] = concat_path(outdir_root, stim_type, model_type, cell_gid, run_folder)
     conf_data["manifest"]["$STIM_DIR"]   = concat_path("$BASE_DIR/stimulation", cell_gid)
     # single cell definition and per-cell connection functions
     conf_data["internal"]["cells"]     = "$NETWORK_DIR/{}_cell.csv".format(cell_gid)
@@ -92,7 +93,7 @@ def generate_config(base, filename, out_dir, *args, **kwargs):
 
 def validate_bconf(bconf):
 
-    must_haves = {'el_range':list, 'cell_gid':None, 'amps':list, 'trial':int, 'stim_type':str}
+    must_haves = {'el_range':list, 'cell_gid':None, 'amps':list, 'trial':int, 'stim_type':str, 'model_type':str}
 
     for name, t in must_haves.iteritems():
         if name not in bconf:

@@ -1,5 +1,6 @@
 import argparse
 from reobase_analysis.generate_utils import *
+from reobase_analysis.reobase_utils import StimType, ModelType
 
 """
 Command line script for generating config files.
@@ -19,14 +20,15 @@ sargs = parser.parse_args()
 confs_folder = 'confs'
 config_base = sargs.config_base
 
-# TODO allow batch_config filename to be passed in as argument and read, not edited here
+# TODO pass in batch_config as filename to be read, not as object defined here
 batch_config = {
     "el_range": [0, sargs.number_el],
     "cell_gid": sargs.cell_gid,
     "amps": [-0.01, -0.02, -0.03],
-    "freqs": [10, 40, 70],
+    # "freqs": [10, 40, 70],
     "trial": sargs.trial,
-    "stim_type":'sin_lgn_poisson', # output directory name -- differs from waveform type, b/c includes external inputs
+    "stim_type": str(StimType.DC), # output directory name -- differs from waveform type, b/c includes external inputs
+    "model_type": str(ModelType.PERISOMATIC),
 }
 
 print sargs
