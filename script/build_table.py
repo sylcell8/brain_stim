@@ -1,5 +1,7 @@
 import argparse
+
 from reobase_analysis.build_table import *
+from reobase_analysis.reobase_utils import StimType
 
 """
 This script is a wrapper for reobase_analysis/build_table.py to allow running on command line.

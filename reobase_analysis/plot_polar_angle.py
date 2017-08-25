@@ -3,7 +3,7 @@ import reobase_utils as r
 import analysis as ra
 import numpy as np
 import pandas as pd
-from reobase_analysis.analysis import StimType
+from reobase_analysis.reobase_utils import StimType
 
 SAVE = False
 

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import reobase_utils as ru
-from reobase_analysis.analysis import StimType
+from reobase_analysis.reobase_utils import StimType
 
 cell_gid = [313862022, 314900022, 320668879][1]
 stim_type=StimType.DC_LGN_POISSON

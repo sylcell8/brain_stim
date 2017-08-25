@@ -23,8 +23,8 @@ def generate_config_set(config_base, bconf, confs_folder='confs', verbose=False)
 
     # key function used for consistent naming
     key_fn = {
-        'dc': get_dc_key,
-        'sin': get_sin_key,
+        'dc': resolve_dc_key,
+        'sin': resolve_sin_key,
     }.get(waveform_type)
 
     # dir function used for consistent naming

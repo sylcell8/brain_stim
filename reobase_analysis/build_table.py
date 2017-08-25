@@ -2,7 +2,7 @@ import glob
 import numpy as np
 import itertools
 import reobase_analysis.reobase_utils as ru
-from reobase_analysis.analysis import StimType, ModelType
+from reobase_analysis.reobase_utils import StimType, ModelType
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 
 #import cProfile, pstats, io
@@ -22,11 +22,12 @@ If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 default_gid = [313862022, 314900022, 320668879][0]
 default_inputs = [-0.01,-0.02,-0.03,-0.04,-0.05,-0.06,-0.07,-0.08,-0.09,-0.10]
 default_stim_type = StimType.DC_LGN_POISSON
+default_model_type = ModelType.PERISOMATIC
 
 
 def build(cell_gid, inputs, stim_type, trial=0):
     cell_csv_pattern = '/*_cel[ls]*csv' # ridiculous pattern matching for old files called 1_cell.csv vs new ones called [gid].csv
-    cell_out_dir = ru.get_output_dir(stim_type, ModelType.PERISOMATIC, cell_gid)
+    cell_out_dir = ru.get_output_dir(stim_type, default_model_type, cell_gid)
     include_delta_vm = stim_type == StimType.DC.value
 
     for amp in inputs:
@@ -42,10 +43,8 @@ def build(cell_gid, inputs, stim_type, trial=0):
             config_path = ru.get_config_resolved_path(out_dir, el, amp)
             cvh5 = ru.get_cv_files(out_dir, [0])[0]
             conf = ru.get_json_from_file(config_path)
+            electrodes_dir = ru.get_dir_root() + '/' + '/'.join( conf['output']['electrodes_dir'].split('/')[2:] )
             waveform = stimx_waveform_factory(conf)
-
-            electrodes_dir = conf['output']['electrodes_dir']
-            electrodes_dir = ru.get_dir_root() + '/' + '/'.join(electrodes_dir.split('/')[2:])
 
             spikes = cvh5['spikes'].value
             el_xyz = ru.get_electrode_xyz(ru.get_electrode_path(electrodes_dir, cell_gid, el)).flatten()
@@ -64,7 +63,7 @@ def build(cell_gid, inputs, stim_type, trial=0):
 
         filename = ru.get_table_filename(cell_gid, amp)
         print 'Data collected. Writing to {}...'.format(filename)
-        fpath = ru.get_reobase_dir('Run_folder/result_tables', stim_type, filename)
+        fpath = ru.get_table_dir(stim_type, default_model_type, filename)
         ru.write_table_h5(fpath, table, attrs={'has_vm_data':include_delta_vm,'vm_rest': vm_rest})
         print 'Done.'
 

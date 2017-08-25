@@ -1,35 +1,8 @@
 """
 Place to hold analysis functions. 
-Any transformation / operation of the data tables would fit, as well as any 
-sources of truth for values used throughout the analysis/plot and util files.
+Any transformation / operation of the data tables would fit.
 """
 import numpy as np
-from enum import Enum
-
-
-#################################################
-#
-#     Enumerated constant values
-#
-#################################################
-
-class Type(Enum):
-    def __str__(self):
-        return str(self.value)
-
-
-# Enumerate stim types to use as source of truth
-class StimType(Type):
-    DC = 'dc'
-    DC_LGN_POISSON = 'dc_lgn_poisson'
-
-
-# Enumerate model types to use as source of truth
-class ModelType(Type):
-    PERISOMATIC = 'perisomatic'
-    ACTIVE      = 'all_active'
-    PASSIVE     = 'passive'
-    FAHIMEH     = 'fahimeh_passive'
 
 #################################################
 #

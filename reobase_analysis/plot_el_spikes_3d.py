@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import reobase_utils as ru
 import analysis as ra
 from mpl_toolkits.mplot3d import Axes3D
-from reobase_analysis.analysis import StimType
+from reobase_analysis.reobase_utils import StimType
 
 # Get radius for soma sphere model
 #from allensdk.core.cell_types_cache import CellTypesCache
