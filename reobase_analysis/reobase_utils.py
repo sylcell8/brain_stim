@@ -137,6 +137,14 @@ def get_table_filename(cell_gid, amp):
     return 'table_{}_amp{}.h5'.format(cell_gid, format_amp(amp))
 
 
+## VMDs ###
+
+def get_vmd_dir(stim_type, model_type, *args):
+    return get_reobase_dir('Run_folder/result_vmd/', stim_type, model_type, *args)
+
+def get_vmd_filename(cell_gid, amp):
+    return '{}_amp{}.pdb'.format(cell_gid, format_amp(amp))
+
 #################################################
 #
 #     IO / data
@@ -291,3 +299,48 @@ def read_cell_rows(cell_gid, els, amps, stim_type='dc',
     table['num_spikes'] = table.apply(lambda row: len(row['spikes']), axis=1)
 
     return table
+
+
+#############################################
+
+## VMD ##
+
+#############################################
+
+def df_to_pdb(output, df, x_col, y_col, z_col, beta_col):
+    with open(output, 'w') as f:
+        df.index = np.arange(1,len(df)+1)
+        for index, row in df.iterrows():
+            f.write('%s %6s %s %11.3f %7.3f %7.3f %s %5.2f\n' % ("ATOM",index,
+                                                                 " O   PRO A   1",
+                                                                 row[x_col],
+                                                                 row[y_col],
+                                                                 row[z_col],
+                                                                 " 1.00",
+                                                                 row[beta_col]))
+
+
+def get_swc_filename(cell_models_filepath, cell_gid):
+    df = pd.read_csv(cell_models_filepath, sep = " ", header = "infer")
+    index = np.where(df["model_id"] == cell_gid)[0][0]
+    return df["morphology"][index]
+
+
+
+def read_swc_file(swc_filename):
+    swc_list = pd.read_csv(swc_filename, sep=" ", comment="#",
+                           names=["id", "type", "x", "y", "z", "r", "pid"])
+    soma_pos = swc_list[swc_list["type"] == 1][["x", "y", "z"]]
+    swc_list = swc_list[["x", "y", "z", "r"]]
+    return swc_list, soma_pos
+
+
+
+def move_swc_to_origin(swc_list, soma_pos):
+    x = swc_list["x"] - float(soma_pos["x"])
+    y = swc_list["y"] - float(soma_pos["y"])
+    z = swc_list["z"] - float(soma_pos["z"])
+    r = swc_list["r"]
+    swc_movedto_origin = pd.DataFrame({"x": x, "y": y, "z": z, "r": r})
+
+    return swc_movedto_origin
