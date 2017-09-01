@@ -3,13 +3,13 @@ import reobase_analysis.reobase_utils as ru
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 
 
-el = 409
-amp = 0.050
-gid = 314900022
+# el = 409
+# amp = 0.050
+# gid = 314900022
 
-def plot(el, amp, cell_gid):
+def plot(el, amp, cell_gid, model_type):
 
-    example_dir = ru.get_dc_output_dir(gid,el,amp)
+    example_dir = ru.get_dc_output_dir(cell_gid,el,amp, model_type)
     conf = ru.get_json_from_file(ru.get_config_resolved_path(example_dir, el, amp))
     waveform = stimx_waveform_factory(conf)
     
@@ -18,4 +18,4 @@ def plot(el, amp, cell_gid):
                      title=title)
     
 
-plot(el,amp,gid)
+# plot(el,amp,gid)
