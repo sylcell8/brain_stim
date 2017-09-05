@@ -311,7 +311,7 @@ def df_to_pdb(output, df, x_col, y_col, z_col, beta_col):
     with open(output, 'w') as f:
         df.index = np.arange(1,len(df)+1)
         for index, row in df.iterrows():
-            f.write('%s %6s %s %11.3f %7.3f %7.3f %s %5.2f\n' % ("ATOM",index,
+            f.write('%s %6s %s %11.3f%8.3f%8.3f %s %5.2f\n' % ("ATOM",index,
                                                                  " O   PRO A   1",
                                                                  row[x_col],
                                                                  row[y_col],
