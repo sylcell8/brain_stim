@@ -142,8 +142,8 @@ def get_table_filename(cell_gid, amp):
 def get_vmd_dir(stim_type, model_type, *args):
     return get_reobase_dir('Run_folder/result_vmd/', stim_type, model_type, *args)
 
-def get_vmd_filename(cell_gid, amp):
-    return '{}_amp{}.pdb'.format(cell_gid, format_amp(amp))
+def get_vmd_filename(cell_gid, amp, vmdtype):
+    return '{}_amp{}_{}.pdb'.format(cell_gid, format_amp(amp), vmdtype)
 
 #################################################
 #
@@ -255,19 +255,19 @@ def write_table_h5(fpath, df, attrs=None):
                 f5.attrs[k] = v
 
 
-def read_cell_tables(cell_gid, amp_range, stim_type,
+def read_cell_tables(cell_gid, amp_range, stim_type, model_type,
                      data_dir=None):
     """ Read h5 files for a set of amplitudes """
-    print "Fetching data..."
+    # print "Fetching data..."
 
-    data_dir = get_table_dir(stim_type, ModelType.PERISOMATIC) if data_dir is None else data_dir
+    data_dir = get_table_dir(stim_type, model_type) if data_dir is None else data_dir
     paths = [concat_path(data_dir, get_table_filename(cell_gid, a)) for a in amp_range]
 
     t = build_dc_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
     t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
 
-    print "Done"
+    # print "Done"
     return t
 
 
@@ -344,3 +344,34 @@ def move_swc_to_origin(swc_list, soma_pos):
     swc_movedto_origin = pd.DataFrame({"x": x, "y": y, "z": z, "r": r})
 
     return swc_movedto_origin
+
+
+def tabel_to_pdb(gids, inputs, stim_type, model_type):
+
+    for gid in gids:
+        for input in inputs:
+            t = read_cell_tables(gid, [input], stim_type, model_type)
+            grouped_df = t.groupby('amp')
+            gb = grouped_df.groups
+            if (all(t["num_spikes"] < 2) == True):
+                vmd_filename = get_vmd_filename(gid, input, "sub")
+                vmd_result_dir = get_vmd_dir(stim_type, model_type, vmd_filename)
+                for key, values in gb.iteritems():
+                    df_to_pdb(vmd_result_dir, t.loc[values], "x", "y", "z", "delta_vm")
+            else:
+                vmd_filename = get_vmd_filename(gid, input, "supra")
+                vmd_result_dir = get_vmd_dir(stim_type, model_type, vmd_filename)
+                for key, values in gb.iteritems():
+                    df_to_pdb(vmd_result_dir, t.loc[values], "x", "y", "z", "num_spikes")
+
+def swc_to_pdb(gids, stim_type, model_type, cell_models_file):
+    for gid in gids:
+        path = get_reobase_dir("Run_folder", "net", cell_models_file)
+        swc_filename = get_swc_filename(path, gid)
+        swc_filepath = get_reobase_dir("cell_models_layer4", "biophysical", "morphology",
+                                      swc_filename)
+        swc_list, soma_pos = read_swc_file(swc_filepath)
+        swc_moved_to_origin = move_swc_to_origin(swc_list, soma_pos)
+        swcpdb_filename = "swc" + str(gid) + ".pdb"
+        swcpdb_filedir = get_vmd_dir(stim_type, model_type, swcpdb_filename)
+        df_to_pdb(swcpdb_filedir,swc_moved_to_origin, "x", "y", "z", "r" )
