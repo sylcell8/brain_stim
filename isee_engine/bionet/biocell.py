@@ -23,9 +23,26 @@ class BioCell(Cell):
         
         bio.set_morphology(self.hobj,cell_prop['morphology']);        
 
-        # bio.fix_axon(self.hobj)
+        # if cell_prop['level_of_detail'] == 'biophysical_perisomatic':
+        bio.fix_axon(self.hobj)
+        # else:
+        #     bio.fix_axon_all_active(self.hobj)
         # bio.set_params_perisomatic(self.hobj, cell_prop['electrophysiology'])
-        bio.set_params_all_active(self.hobj, cell_prop['electrophysiology'])
+        # bio.set_params_all_active(self.hobj, cell_prop['electrophysiology'])
+        bio.set_params(self.hobj, cell_prop['electrophysiology'])
+        # for sec in self.hobj.all:
+        #     sec.insert('pas')
+        #     sec.insert('extracellular')
+
+
+        # with open('/local1/BIONET_example/Run_folder/BIONET_seg_prop.csv', 'w') as f:
+        #     for sec in self.hobj.all:
+        #         f.write('%s %20.10f %20.10f %20.10f %20.10f %d \n' % (sec.name(),
+        #                                                               sec.g_pas,
+        #                                                               sec.e_pas,
+        #                                                               sec.L,
+        #                                                               sec.diam,
+        #                                                               sec.nseg))
 
         self.set_nseg(conf["run"]["dL"])
 #        self.synapses = []

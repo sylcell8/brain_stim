@@ -49,7 +49,6 @@ def fix_axon(hobj):
     
     for sec in hobj.axon:
         h.delete_section(sec=sec)
-      
     h.execute('create axon[2]', hobj)
 
         
@@ -86,7 +85,6 @@ def set_params_perisomatic(hobj, params_file_name):
     params_file_name: string 
         name of json file containing biophysical parameters for cell's model which determine spiking behavior
     '''
-
     with open(params_file_name) as biophys_params_file:
         biophys_params = json.load(biophys_params_file)
 
@@ -121,12 +119,75 @@ def set_params_perisomatic(hobj, params_file_name):
             sec.ek = erev["ek"]
 
 ######################################################################################################################
+def set_params(hobj, params_file_name):
+
+    params_dict = json.load(open(params_file_name, 'r'))
+    passive = params_dict['passive'][0]
+    genome = params_dict['genome']
+    conditions = params_dict['conditions'][0]
+
+    section_map = {}
+    for sec in hobj.all:
+        section_name = sec.name().split(".")[1][:4]
+        if section_name in section_map:
+            section_map[section_name].append(sec)
+        else:
+            section_map[section_name] = [sec]
+
+    for sec in hobj.all:
+        sec.insert('pas')
+        sec.insert('extracellular')
+
+    if 'e_pas' in passive:
+        e_pas_val = passive['e_pas']
+        for sec in hobj.all:
+            for seg in sec:
+                seg.pas.e = e_pas_val
+
+    if 'ra' in passive:
+        ra_val = passive['ra']
+        for sec in hobj.all:
+            sec.Ra = ra_val
+
+    if 'cm' in passive:
+        for cm_dict in passive['cm']:
+            cm = cm_dict['cm']
+            for sec in section_map.get(cm_dict['section'], []):
+                sec.cm = cm
+
+    for genome_dict in genome:
+        g_section = genome_dict['section']
+        if genome_dict['section'] == 'glob':
+            print("WARNING: There is a section called glob, probably old json file")
+            continue
+
+        g_value = float(genome_dict['value'])
+        g_name = genome_dict['name']
+        g_mechanism = genome_dict.get("mechanism", "")
+        for sec in section_map.get(g_section, []):
+            if g_mechanism != "":
+                sec.insert(g_mechanism)
+            setattr(sec, g_name, g_value)
+
+    for erev in conditions['erev']:
+        erev_section = erev['section']
+        erev_ena = erev['ena']
+        erev_ek = erev['ek']
+        if erev_section in section_map:
+            for sec in section_map.get(erev_section, []):
+                if h.ismembrane('k_ion', sec=sec) == 1:
+                    setattr(sec, 'ek', erev_ek)
+                if h.ismembrane('na_ion', sec=sec) == 1:
+                    setattr(sec, 'ena', erev_ena)
+        else:
+            print("Warning: can't set erev for {}, section array doesn't exist".format(erev_section))
+
+######################################################################################################################
 
 def set_params_all_active(hobj, params_file_name):
 
     '''Configure a neuron after the cell morphology has been loaded.'''
-
-    with open(params_file_name) as biophys_params_file:    
+    with open(params_file_name) as biophys_params_file:
         biophys_params = json.load(biophys_params_file)
 
     passive = biophys_params['passive'][0]
@@ -177,32 +238,6 @@ def set_params_all_active(hobj, params_file_name):
                 if h.ismembrane("na_ion", sec=section) == 1: setattr(section, 'ena', ena)
         else:
             print "Warning: can't set erev for %s, section array doesn't exist" % erev_section_array
-
-
-    # for sec in hobj.all:
-    #     print sec.name().split(".")[1][:4], "Ra:", sec.Ra, "cm:", sec.cm, "e_pas:", sec.e_pas, "g_pas:", sec.g_pas
-    #     if h.ismembrane("CaDynamics", sec=sec): print sec.name().split(".")[1][:4], sec.gamma_CaDynamics
-
-    # # Insert channels and set parameters
-    # for p in genome:
-    #     section_array = p["section"]
-    #     mechanism = p["mechanism"]
-    #     param_name = p["name"]
-    #     param_value = float(p["value"])
-    #     # print section_array, mechanism, param_name, param_value
-    #
-    #
-    #     if section_array == "glob":    h(p["name"] + " = %g " % p["value"])
-    #     # print section_array
-    #     if hasattr(hobj, section_array):
-    #         print getattr(hobj, section_array)
-    #             if mechanism != "":
-    #                 print 'Adding mechanism %s to %s' % (mechanism, section_array)
-    #                 for section in getattr(hobj, section_array):
-    #                     if h.ismembrane(str(mechanism), sec=section) != 1:  section.insert(mechanism)
-    #
-    #             print 'Setting %s to %.6g in %s' % (param_name, param_value, section_array)
-    #             for section in getattr(hobj, section_array):  setattr(section, param_name, param_value)
 
 
 

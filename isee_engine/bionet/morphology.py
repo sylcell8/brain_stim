@@ -90,6 +90,7 @@ class Morphology(object):
                 p3d[0,i] = h.x3d(i) - p3dsoma[0]
                 p3d[1,i] = h.y3d(i) - p3dsoma[1]    # shift coordinates such to place soma at the origin.
                 p3d[2,i] = h.z3d(i) - p3dsoma[2]
+                # print '{0:20.10f} {1:20.10f} {2:20.10f}'.format(p3dsoma[0], p3dsoma[1], p3dsoma[2])
 
                 diam3d[i] = h.diam3d(i)
 
@@ -133,7 +134,10 @@ class Morphology(object):
         self.seg_coords['d0'] = d0
         self.seg_coords['d1'] = d1
 
-
+        # with open('/local1/BIONET_example/Run_folder/BIONET_hn3d.csv', 'w') as f:
+        #     for sec in self.hobj.all:
+        #         for i in range(int(h.n3d())):
+        #             f.write('%20.10f %20.10f %20.10f \n' % (h.x3d(i),  h.y3d(i),  h.z3d(i)))
         return self.seg_coords
 
 

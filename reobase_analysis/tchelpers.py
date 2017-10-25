@@ -59,17 +59,16 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
     cvfiles = get_cv_files(output, [cell]) if cell is not None else get_cv_files(output)
     tstop = cvfiles[0].attrs['tstop']
     dt = cvfiles[0].attrs['dt']
-
+    #var = []
     if not ax:
         plt.figure(figsize=size)
         ax = plt.subplot(111)
-    
     for i, f in enumerate(cvfiles):
         plot_args = {}
         plot_args['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
         plot_args['c'] = kwargs['c'] if 'c' in kwargs else None
         ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, **plot_args)
-
+    #    var.append(f[var_name].value)
     xtick_location, xtick_labels = calc_xticks([0, tstop], ticks_every)
     ax.set_xticks(xtick_location)
     ax.set_xticklabels(xtick_labels)
@@ -77,6 +76,7 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
     if show_legend:
         ax.legend(loc='upper left')
     return ax
+    # return var, ax
 
 def get_spikes_raster_plot(output, size=None, ax=None, ticksEvery=500, **kwargs):
 
