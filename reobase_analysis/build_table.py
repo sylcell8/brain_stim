@@ -25,7 +25,7 @@ default_stim_type = StimType.DC_LGN_POISSON
 #default_model_type = ModelType.PERISOMATIC
 
 
-def build(cell_gid, inputs, stim_type, model_type , trial=0):
+def build(cell_gid, inputs, stim_type, model_type , trial):
     cell_csv_pattern = '/*_cel[ls]*csv' # ridiculous pattern matching for old files called 1_cell.csv vs new ones called [gid].csv
     cell_out_dir = ru.get_output_dir(stim_type, model_type, cell_gid)
     include_delta_vm = stim_type == StimType.DC.value
@@ -61,7 +61,7 @@ def build(cell_gid, inputs, stim_type, model_type , trial=0):
                 print run_id, [el_dist, amp, spikes]
                 raise
 
-        filename = ru.get_table_filename(cell_gid, amp)
+        filename = ru.get_table_filename(cell_gid, amp, trial)
         print 'Data collected. Writing to {}...'.format(filename)
         fpath = ru.get_table_dir(stim_type, model_type, filename)
         ru.write_table_h5(fpath, table, attrs={'has_vm_data':include_delta_vm,'vm_rest': vm_rest})

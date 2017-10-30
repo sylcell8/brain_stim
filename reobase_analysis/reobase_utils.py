@@ -108,7 +108,7 @@ def resolve_dc_key(el, amp):
 def get_dc_dir_name(el, amp, trial):
     return '_'.join([resolve_dc_key(el, amp), 'tr' + str(trial)])
 
-def get_dc_output_dir(cell_gid, el, amp, model_type=ModelType.PERISOMATIC, trial=0):
+def get_dc_output_dir(cell_gid, el, amp, model_type, trial):
     root_dir = get_output_dir(StimType.DC, model_type, cell_gid)
     out_dir = get_dc_dir_name(el, amp, trial)
     return concat_path(root_dir, out_dir)
@@ -133,8 +133,8 @@ def get_sin_output_dir(cell_gid, el, amp, freq, model_type=ModelType.PERISOMATIC
 def get_table_dir(stim_type, model_type, *args):
     return get_reobase_dir('Run_folder/result_tables/', stim_type, model_type, *args)
 
-def get_table_filename(cell_gid, amp):
-    return 'table_{}_amp{}.h5'.format(cell_gid, format_amp(amp))
+def get_table_filename(cell_gid, amp,trial):
+    return 'table_{}_amp{}_tr{}.h5'.format(cell_gid, format_amp(amp), trial)
 
 
 ## VMDs ###
@@ -255,13 +255,12 @@ def write_table_h5(fpath, df, attrs=None):
                 f5.attrs[k] = v
 
 
-def read_cell_tables(cell_gid, amp_range, stim_type, model_type,
+def read_cell_tables(cell_gid, amp_range, stim_type, model_type, trial,
                      data_dir=None):
     """ Read h5 files for a set of amplitudes """
     # print "Fetching data..."
-
     data_dir = get_table_dir(stim_type, model_type) if data_dir is None else data_dir
-    paths = [concat_path(data_dir, get_table_filename(cell_gid, a)) for a in amp_range]
+    paths = [concat_path(data_dir, get_table_filename(cell_gid, a, trial)) for a in amp_range]
 
     t = build_dc_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
@@ -271,7 +270,7 @@ def read_cell_tables(cell_gid, amp_range, stim_type, model_type,
     return t
 
 
-def read_cell_rows(cell_gid, els, amps, stim_type='dc',
+def read_cell_rows(cell_gid, els, amps, stim_type , trial,
                    data_dir=None):
     """
     Read h5 files for a set of amps and electrodes -- faster when considering a small subset of electrodes
@@ -284,7 +283,7 @@ def read_cell_rows(cell_gid, els, amps, stim_type='dc',
     table = build_dc_df()
 
     for amp in amps:
-        fpath = concat_path(data_dir, get_table_filename(cell_gid, amp))
+        fpath = concat_path(data_dir, get_table_filename(cell_gid, amp, trial))
 
         with h5.File(fpath, 'r') as f5:
             ids = f5['ids'].value

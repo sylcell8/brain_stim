@@ -51,9 +51,9 @@ def plot(t, amp, col_name, nbins=14, save_name=None):
         plt.show()
 
 
-def XY(cell_gid, inputs, col_name, stim_type, model_type, dist, nbins=14, save_name=None):
+def XY(cell_gid, inputs, col_name, stim_type, model_type, trial, dist, nbins=14, save_name=None):
 
-    t = r.read_cell_tables(cell_gid, inputs, stim_type, model_type)
+    t = r.read_cell_tables(cell_gid, inputs, stim_type, model_type, trial)
     t['theta'], t['phi'] = ra.spherical_coords(t)
 
     t = t[(t.distance == dist)] # exclude closest layer
@@ -80,9 +80,9 @@ def fetch_data_plot(cell_gid, amp, stim_type, *args, **kwargs):
 
 #%%
 
-def pol(cell_gid, inputs, col_name, stim_type, model_type, dist):
+def pol(cell_gid, inputs, col_name, stim_type, model_type, trial, dist):
     # cell_gid = [313862022, 314900022, 320668879][1]
-    t = r.read_cell_tables(cell_gid, inputs, stim_type, model_type)
+    t = r.read_cell_tables(cell_gid, inputs, stim_type, model_type, trial)
     t['theta'], t['phi'] = ra.spherical_coords(t)
 
     # tdcp = r.read_cell_tables(cell_gid, [str(x) for x in range(20,101,20)], stim_type=StimType.DC_LGN_POISSON)
@@ -101,12 +101,12 @@ print 'For an example try pol(313862022, "dc", "perisomatic") function'
 
 # default()
 
-def fit_sin(gid, inputs, col_name, stim_type, model_type, dist):
+def fit_sin(gid, inputs, col_name, stim_type, model_type, trial, dist):
     import numpy as np
     from scipy.optimize import leastsq
     import pylab as plt
 
-    tempX, tempY = XY(gid, inputs, col_name, stim_type, model_type, dist)
+    tempX, tempY = XY(gid, inputs, col_name, stim_type, model_type, trial, dist)
     YY = []
     XX = []
     niter = 0
@@ -156,7 +156,8 @@ def fit_sin(gid, inputs, col_name, stim_type, model_type, dist):
     plt.xlabel('$\Theta$ (degree)', fontsize = 15)
     plt.ylabel(col_name, fontsize = 15)
     plt.tick_params(labelsize=15)
+    plt.title("HETRO")
     plt.legend()
     plt.show()
     #     return np.abs(est_stdXX), est_phaseXX * 360  / (2*np.pi) , data_fitXX.min(), np.abs(est_stdXX)/data_fitXX.min()
-    return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+    # return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
