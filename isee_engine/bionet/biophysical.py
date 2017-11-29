@@ -46,12 +46,10 @@ def fix_axon(hobj):
         NEURON's cell object
     '''
 
-    
     for sec in hobj.axon:
         h.delete_section(sec=sec)
     h.execute('create axon[2]', hobj)
 
-        
     for sec in hobj.axon:
         sec.L = 30
         sec.diam = 1
@@ -67,11 +65,29 @@ def fix_axon(hobj):
 
 
 def fix_axon_all_active(hobj):  
-    '''
-        need temporary because axon is treated differently
-    '''
-    pass
-    
+
+    axon_diams = [hobj.axon[0].diam, hobj.axon[0].diam]
+    for sec in hobj.all:
+        section_name = sec.name().split(".")[1][:4]
+        if section_name == 'axon':
+            axon_diams[1] = sec.diam
+
+    for sec in hobj.axon:
+        h.delete_section(sec=sec)
+
+    h.execute('create axon[2]', hobj)
+    for index, sec in enumerate(hobj.axon):
+        sec.L = 30
+        sec.diam = axon_diams[index]  # 1
+        hobj.axonal.append(sec=sec)
+        hobj.all.append(sec=sec)  # need to remove this comment
+
+    hobj.axon[0].connect(hobj.soma[0], 1, 0)
+    hobj.axon[1].connect(hobj.axon[0], 1, 0)
+
+    h.define_shape()
+
+
 
 def set_params_perisomatic(hobj, params_file_name):
 

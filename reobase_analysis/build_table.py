@@ -49,7 +49,7 @@ def build(cell_gid, inputs, stim_type, model_type , trial):
             spikes = cvh5['spikes'].value
             el_xyz = ru.get_electrode_xyz(ru.get_electrode_path(electrodes_dir, cell_gid, el)).flatten()
             cell_xyz = ru.get_cell_xyz(glob.glob(out_dir + cell_csv_pattern)[0]).flatten()
-            el_dist = np.linalg.norm(el_xyz - cell_xyz)
+            el_dist = round(np.linalg.norm(el_xyz - cell_xyz))
             run_id = ru.resolve_run_id(cell_gid, el, amp)
 
             try:

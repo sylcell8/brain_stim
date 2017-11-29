@@ -1,9 +1,12 @@
 from isee_engine.bionet import util
+from isee_engine.bionet import bionet_io
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 import numpy as np
 import math
 import pandas as pd
 from neuron import h
+import sys, os
+
 
 class StimXElectrode():
     '''
@@ -101,6 +104,9 @@ class StimXElectrode():
                 rel_05 = rel - r05
                 r2 = np.einsum('ij,ij->j', rel_05, rel_05)
                 r = np.sqrt(r2)
+                if (all(i >= 10 for i in r) == False):
+                    bionet_io.print2log0('ERROR:External electrode is too close')
+                    sys.exit()
                 cell_map[el, :] += 1. / r
 
         cell_map *= (rho / (4 * math.pi)) * 0.01

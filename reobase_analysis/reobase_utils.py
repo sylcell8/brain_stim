@@ -44,7 +44,7 @@ class ModelType(Name):
     PERISOMATIC = 'perisomatic'
     ACTIVE      = 'all_active'
     PASSIVE     = 'passive'
-    FAHIMEH     = 'fahimeh_passive'
+    FAHIMEH    = 'fahimeh'
 
 
 #################################################
@@ -142,8 +142,8 @@ def get_table_filename(cell_gid, amp,trial):
 def get_vmd_dir(stim_type, model_type, *args):
     return get_reobase_dir('Run_folder/result_vmd/', stim_type, model_type, *args)
 
-def get_vmd_filename(cell_gid, amp, vmdtype):
-    return '{}_amp{}_{}.pdb'.format(cell_gid, format_amp(amp), vmdtype)
+def get_vmd_filename(cell_gid, amp, vmdtype, trial):
+    return '{}_amp{}_{}_tr{}.pdb'.format(cell_gid, format_amp(amp), vmdtype, trial)
 
 #################################################
 #
@@ -345,20 +345,20 @@ def move_swc_to_origin(swc_list, soma_pos):
     return swc_movedto_origin
 
 
-def tabel_to_pdb(gids, inputs, stim_type, model_type):
+def tabel_to_pdb(gids, inputs, stim_type, model_type, trial):
 
     for gid in gids:
         for input in inputs:
-            t = read_cell_tables(gid, [input], stim_type, model_type)
+            t = read_cell_tables(gid, [input], stim_type, model_type, trial)
             grouped_df = t.groupby('amp')
             gb = grouped_df.groups
             if (all(t["num_spikes"] < 2) == True):
-                vmd_filename = get_vmd_filename(gid, input, "sub")
+                vmd_filename = get_vmd_filename(gid, input, "sub", trial)
                 vmd_result_dir = get_vmd_dir(stim_type, model_type, vmd_filename)
                 for key, values in gb.iteritems():
                     df_to_pdb(vmd_result_dir, t.loc[values], "x", "y", "z", "delta_vm")
             else:
-                vmd_filename = get_vmd_filename(gid, input, "supra")
+                vmd_filename = get_vmd_filename(gid, input, "supra", trial)
                 vmd_result_dir = get_vmd_dir(stim_type, model_type, vmd_filename)
                 for key, values in gb.iteritems():
                     df_to_pdb(vmd_result_dir, t.loc[values], "x", "y", "z", "num_spikes")
