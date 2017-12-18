@@ -67,7 +67,7 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
         plot_args = {}
         plot_args['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
         plot_args['c'] = kwargs['c'] if 'c' in kwargs else None
-        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=0.65, **plot_args)
+        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=2.5, **plot_args)
     #    var.append(f[var_name].value)
     xtick_location, xtick_labels = calc_xticks([0, tstop], ticks_every)
     ax.set_xticks(xtick_location)

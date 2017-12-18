@@ -158,6 +158,7 @@ def fit_sin(gid, inputs, col_name, stim_type, model_type, trial, dist):
     plt.tick_params(labelsize=15)
     plt.title("HETRO")
     plt.legend()
-    plt.show()
+    # plt.show()
     #     return np.abs(est_stdXX), est_phaseXX * 360  / (2*np.pi) , data_fitXX.min(), np.abs(est_stdXX)/data_fitXX.min()
     # return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+    return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())

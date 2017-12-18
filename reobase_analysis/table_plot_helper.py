@@ -37,36 +37,20 @@ def passive_comparison(table_pass_peri, table_pass_aa, amp):
     plt.show()
 
 
-def build_perisomatic_assess_table(gid, list_trials, inputs):
+def Build_subthreshold_comparison_table(gid, Model_Type, Stim_Type, list_trials, inputs):
 
         table_temp = {}
         table_pass_peri = pd.DataFrame()
         for tr in list_trials:
-            table_temp[tr] = ru.read_cell_tables(gid, inputs, "dc", "passive", trial=tr)
+            table_temp[tr] = ru.read_cell_tables(gid, inputs ,Stim_Type, Model_Type, trial=tr)
             new_deltavm = "delta_vm" + str(tr)
             table_temp[tr] = table_temp[tr].rename(columns={'delta_vm': new_deltavm})
             table_temp[tr]["distance"] = table_temp[tr]["distance"].round()
 
-        table_pass_peri = pd.merge(table_temp[0][["electrode", "x", "y", "z", "distance", "amp", "delta_vm0"]],
-                                   table_temp[1][["electrode", "x", "y", "z", "distance", "amp", "delta_vm1"]],
+        table_pass_peri = pd.merge(table_temp[list_trials[0]][["electrode", "x", "y", "z", "distance", "amp", "delta_vm" + str(list_trials[0])]],
+                                   table_temp[list_trials[1]][["electrode", "x", "y", "z", "distance", "amp", "delta_vm" + str(list_trials[1]) ]],
                                    on=["electrode", "amp", "x", "y", "z", "distance"]).sort_values(by=["electrode"])
-        table_pass_peri["delta_deltav"] = table_pass_peri["delta_vm0"] - table_pass_peri["delta_vm1"]
-        table_pass_peri["avg_deltav"] = (table_pass_peri["delta_vm0"] + table_pass_peri["delta_vm1"]) / 2.
+        table_pass_peri["delta_deltav"] = table_pass_peri["delta_vm" + str(list_trials[0])] - table_pass_peri["delta_vm" + str(list_trials[1])]
+        # table_pass_peri["avg_deltav"] = (table_pass_peri["delta_vm0"] + table_pass_peri["delta_vm1"]) / 2.
         return table_pass_peri
 
-
-def build_allactive_assess_table(gid, list_trials, inputs):
-    table_temp = {}
-    table_pass_aa = pd.DataFrame()
-    for tr in list_trials:
-        table_temp[tr] = ru.read_cell_tables(gid, inputs, "dc", "passive", trial=tr)
-        new_deltavm = "delta_vm" + str(tr)
-        table_temp[tr] = table_temp[tr].rename(columns={'delta_vm': new_deltavm})
-        table_temp[tr]["distance"] = table_temp[tr]["distance"].round()
-
-    table_pass_aa = pd.merge(table_temp[2][["electrode", "x", "y", "z", "distance", "amp", "delta_vm2"]],
-                               table_temp[3][["electrode", "x", "y", "z", "distance", "amp", "delta_vm3"]],
-                               on=["electrode", "amp", "x", "y", "z", "distance"]).sort_values(by=["electrode"])
-    table_pass_aa["delta_deltav"] = table_pass_aa["delta_vm2"] - table_pass_aa["delta_vm3"]
-    table_pass_aa["avg_deltav"] = (table_pass_aa["delta_vm2"] + table_pass_aa["delta_vm3"]) / 2.
-    return table_pass_aa
