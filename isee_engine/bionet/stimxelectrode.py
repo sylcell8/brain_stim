@@ -112,11 +112,7 @@ class StimXElectrode():
         cell_map *= (rho / (4 * math.pi)) * 0.01
         self.trans_X[gid] = cell_map
 
-        # with open('/local1/BIONET_example/Run_folder/BIONET_p05.csv', 'w') as f:
-        #     for n in range(nseg):
-        #         f.write('%20.10f %20.10f %20.10f\n' % (r05[0][n], r05[1][n], r05[2][n]))
-
-
+ 
     def calculate_waveforms(self, tstep):
         simulation_time = h.dt * tstep
         # copies waveform elnsites times (homogeneous)

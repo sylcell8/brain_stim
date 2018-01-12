@@ -15,37 +15,23 @@ class BioCell(Cell):
     '''
 
     def __init__(self,conf,cell_prop):
-        
-       
+
+
         Cell.__init__(self,cell_prop)
 
-        self.hobj = h.Biophysical()  # create a blank hoc object from template. 
-        
-        bio.set_morphology(self.hobj,cell_prop['morphology']);        
+        self.hobj = h.Biophysical()  # create a blank hoc object from template.
+
+        bio.set_morphology(self.hobj,cell_prop['morphology']);
 
         if cell_prop['fixaxon'] == 'perisomatic':
             bionet_io.print2log0("Fixing axon like perisomatic ")
-            bio.fix_axon(self.hobj)
+            bio.fix_axon_perisomatic(self.hobj)
+
         if cell_prop['fixaxon'] == 'all_active':
             bionet_io.print2log0("Fixing axon like all_active ")
             bio.fix_axon_all_active(self.hobj)
-        if cell_prop['fixaxon'] == 'none':
-            bionet_io.print2log0("Axon is not fixed")
 
         bio.set_params(self.hobj, cell_prop['electrophysiology'])
-        # for sec in self.hobj.all:
-        #     sec.insert('pas')
-        #     sec.insert('extracellular')
-
-
-        # with open('/local1/BIONET_example/Run_folder/BIONET_seg_prop.csv', 'w') as f:
-        #     for sec in self.hobj.all:
-        #         f.write('%s %20.10f %20.10f %20.10f %20.10f %d \n' % (sec.name(),
-        #                                                               sec.g_pas,
-        #                                                               sec.e_pas,
-        #                                                               sec.L,
-        #                                                               sec.diam,
-        #                                                               sec.nseg))
 
         self.set_nseg(conf["run"]["dL"])
 #        self.synapses = []
