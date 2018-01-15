@@ -116,6 +116,9 @@ def fix_axon_perisomatic(hobj):
     hobj.axon[0].connect(hobj.soma[0], 0.5, 0)
     hobj.axon[1].connect(hobj.axon[0], 1.0, 0)
 
+    hobj.axon[0].L = 30.0
+    hobj.axon[1].L = 30.0
+
     h.define_shape()
 
     for sec in hobj.axon:
@@ -161,6 +164,9 @@ def fix_axon_all_active(hobj):
     h.pt3dadd(beg2[0], beg2[1], beg2[2], axon_diams[1], sec=hobj.axon[1])
     h.pt3dadd(end2[0], end2[1], end2[2], axon_diams[1], sec=hobj.axon[1])
     hobj.all.append(sec=hobj.axon[1])
+
+    hobj.axon[0].L = 30.0
+    hobj.axon[1].L = 30.0
 
     h.define_shape()
 
@@ -247,7 +253,7 @@ def set_params(hobj, params_file_name):
 
 
 # def fix_axon_all_active_OLD(hobj):
-#
+#         print "OLDDDDDD"
 #         axon_diams = [hobj.axon[0].diam, hobj.axon[0].diam]
 #         for sec in hobj.all:
 #             section_name = sec.name().split(".")[1][:4]
@@ -269,7 +275,7 @@ def set_params(hobj, params_file_name):
 #
 #         h.define_shape()
 # #
-# #
+# # #
 # def fix_axon_perisomatic_OLD(hobj):
 #         print "fix_axon_perisomatic_OLD"
 #
