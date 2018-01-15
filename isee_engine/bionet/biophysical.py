@@ -1,6 +1,8 @@
 from neuron import h
 import json
+import csv
 import numpy as np
+from isee_engine.bionet import bionet_io
 from sklearn.decomposition import PCA
 from isee_engine.bionet.morphology import Morphology
 from decimal import *
@@ -89,8 +91,7 @@ def get_axon_direction(hobj):
 
 
 def fix_axon_perisomatic(hobj):
-    print "fix_axon_perisomatic"
-
+    bionet_io.print2log0('Fixing Axon like perisomatic')
     all_sec_names = []
     for sec in hobj.all:
         all_sec_names.append(sec.name().split(".")[1][:4])
@@ -134,7 +135,7 @@ def fix_axon_perisomatic(hobj):
     #         print  i, h.x3d(i), h.y3d(i), h.z3d(i)
 
 def fix_axon_all_active(hobj):
-    print "fix_axon_all_active"
+    bionet_io.print2log0('Fixing Axon like all_active')
     all_sec_names = []
     for sec in hobj.all:
         all_sec_names.append(sec.name().split(".")[1][:4])
@@ -176,9 +177,9 @@ def fix_axon_all_active(hobj):
             print "ERROR: axon stub L is less than 30"
             exit()
 
-    # for sec in hobj.allsec():
+    #for sec in hobj.allsec():
     #     n = int(h.n3d())
-    # #     print sec.name(), n, sec.L
+     #     print sec.name(), n, sec.L
     #     for i in range(n):
     #         print  i, h.x3d(i), h.y3d(i), h.z3d(i)
 

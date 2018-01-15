@@ -29,7 +29,7 @@ batch_config = {
     # "freqs": [10, 40, 70],
     "trial": sargs.trial,
     "stim_type": str(StimType.DC), # output directory name -- differs from waveform type, b/c includes external inputs
-    "model_type": str(ModelType.PERISOMATIC),
+    "model_type": str(ModelType.ACTIVE),
 }
 
 print sargs

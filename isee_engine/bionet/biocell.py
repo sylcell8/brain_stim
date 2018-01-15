@@ -24,11 +24,9 @@ class BioCell(Cell):
         bio.set_morphology(self.hobj,cell_prop['morphology']);
 
         if cell_prop['fixaxon'] == 'perisomatic':
-            bionet_io.print2log0("Fixing axon like perisomatic ")
             bio.fix_axon_perisomatic(self.hobj)
 
         if cell_prop['fixaxon'] == 'all_active':
-            bionet_io.print2log0("Fixing axon like all_active ")
             bio.fix_axon_all_active(self.hobj)
 
         bio.set_params(self.hobj, cell_prop['electrophysiology'])
