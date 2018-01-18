@@ -75,7 +75,7 @@ def get_axon_direction(hobj):
     unit_v[2] = unit_v[2] / mag_v
 
     #Find the direction
-    axon_end = axon_p3d[-1]
+    axon_end = axon_p3d[-1] - soma_mid
     if (np.dot(unit_v, axon_end) < 0) :
         unit_v = unit_v * -1
 
@@ -123,16 +123,11 @@ def fix_axon_perisomatic(hobj):
     h.define_shape()
 
     for sec in hobj.axon:
-        # print "sec.L:", sec.L
+        print "sec.L:", sec.L
         if (np.abs(30-sec.L) > 0.0001):
             print "ERROR: axon stub L is less than 30"
             exit()
 
-    # for sec in hobj.allsec():
-    #     n = int(h.n3d())
-    # #     print sec.name(), n, sec.L
-    #     for i in range(n):
-    #         print  i, h.x3d(i), h.y3d(i), h.z3d(i)
 
 def fix_axon_all_active(hobj):
     bionet_io.print2log0('Fixing Axon like all_active')
@@ -177,11 +172,16 @@ def fix_axon_all_active(hobj):
             print "ERROR: axon stub L is less than 30"
             exit()
 
-    #for sec in hobj.allsec():
-    #     n = int(h.n3d())
-     #     print sec.name(), n, sec.L
-    #     for i in range(n):
-    #         print  i, h.x3d(i), h.y3d(i), h.z3d(i)
+
+#    file_name = "/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/axon.csv"
+#    with open(file_name, 'w') as f:
+#         for sec in hobj.allsec():
+#             n = int(h.n3d())
+#             for i in range(n):
+#                 writer = csv.writer(f, delimiter=' ')
+#                 writer.writerow([sec.name(), h.x3d(i), h.y3d(i), h.z3d(i)])
+
+
 
 def set_params(hobj, params_file_name):
 
