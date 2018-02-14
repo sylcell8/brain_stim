@@ -265,6 +265,7 @@ def read_cell_tables(cell_gid, amp_range, stim_type, model_type, trial,
     t = build_dc_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
     t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
+    t['num_true_spikes'] = np.where(t['num_spikes'] == 1, 0, t['num_spikes'])
 
     # print "Done"
     return t

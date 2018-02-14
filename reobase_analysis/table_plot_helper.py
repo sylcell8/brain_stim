@@ -6,6 +6,49 @@ import reobase_analysis.reobase_utils as ru
 import h5py
 
 
+
+def plot_mediancol1_col2(gids_list, colname1, colname2, amp, stim_type, model_type, trial):
+    med_dic = {}
+    d_list = []
+
+    for gid in gids_list:
+        t = ru.read_cell_tables(gid, [amp], stim_type, model_type, trial)
+        groups = t.groupby([colname2])
+
+        med = []
+        for d, g in groups:
+            d_list = d_list + [d]
+            med.append(g[colname1].agg(np.median, axis=0))
+
+        med_dic[gid] = med
+
+    box_data = [[med_dic[gid][i] for gid in gids_list] for i in range(len(groups))]
+    filtered_data = []
+
+    for list in box_data:
+        filtered_data.append([x for x in list if ~np.isnan(x)])
+
+    fig = plt.figure()
+    fig.set_figheight(7)
+    fig.set_figwidth(15)
+    ax = fig.add_subplot(111)
+
+    if colname1 == "delta_vm":
+        ax.set_title('Median of $\Delta$Vm distribution by distance (amp = {})'.format(amp), fontsize=15)
+        ax.set_ylabel('$\Delta$Vm (mV)', fontsize=20)
+    else:
+        ax.set_title('Median of spike frequency distribution by distance (amp = {})'.format(amp), fontsize=15)
+        ax.set_ylabel('Spike frequency (Hz)', fontsize=20)
+
+    ax.set_xlabel('Distance ($\mu$)', fontsize=20)
+    boxprops = dict(linewidth=1.5)
+    medianprops = dict(linestyle='-', linewidth=1.5, color='firebrick')
+    ax.tick_params(labelsize=15)
+    ax.boxplot(filtered_data, showmeans=True, boxprops=boxprops, medianprops=medianprops)
+    ax.set_xticklabels(["{0:4.2f}".format(x) for x in d_list])
+    plt.show()
+
+
 def groupby_plot(table, groupby_col, plotx, ploty):
     for groupcol, group in table.groupby(groupby_col):
         fig, ax = plt.subplots()
@@ -14,7 +57,7 @@ def groupby_plot(table, groupby_col, plotx, ploty):
         ax.set_ylabel(ploty)
         ax.set_title('{}=  {}'.format(groupby_col, groupcol))
         ax.set_xlim([0,110])
-    # plt.show()
+    plt.show()
 
 
 def passive_comparison(table_pass_peri, table_pass_aa, amp):

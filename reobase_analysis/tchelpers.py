@@ -295,3 +295,4 @@ def plot_cell_morphology_tile(cell_ids):
         get_cell_morphology_plot(id, ax=axarr[i])
 
     plt.show()
+
