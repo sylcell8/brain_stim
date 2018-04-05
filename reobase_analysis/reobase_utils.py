@@ -1,4 +1,4 @@
-import os
+import os, sys
 import math
 import glob
 import json
@@ -37,14 +37,53 @@ class Name(Enum):
 
 class StimType(Name):
     DC = 'dc'
-    DC_LGN_POISSON = 'dc_lgn_poisson'
+    SIN = 'sin'
+    SIN_DC = 'sin_dc'
+    SIN_DC_LGN = 'sin_dc_lgn'
+    SIN_DC_POISSON = 'sin_dc_poisson'
 
+class InputType(Name):
+    EXTRASTIM = 'extrastim'
+    EXTRASTIM_INTRASTIM = 'extrastim_intrastim'
+    EXTRASTIM_INTRASTIM_SYN = 'extrastim_intrastim_syn'
+    INTRASTIM = "intrastim"
 
 class ModelType(Name):
     PERISOMATIC = 'perisomatic'
     ACTIVE      = 'all_active'
     PASSIVE     = 'passive'
     FAHIMEH    = 'fahimeh'
+
+#################################################
+#
+#     Manage arguments
+#
+#################################################
+
+def get_input_args(cell_id, input_type, stim_type, model_type, trial=0, **kwargs):
+    if 'el' and 'amp' not in kwargs.keys():
+        print ("el or amp are not included in the arguments")
+
+    if input_type == "extrastim_intrastim":
+        if stim_type != "sin_dc":
+            raise ValueError("stim_type should match input_type")
+        if 'freq' and 'ic_amp' not in kwargs.keys():
+            raise ValueError("You are required to include freq and ic_amp in the arguments for this input_type")
+
+    if input_type == "extrastim":
+        if stim_type != "sin":
+            raise ValueError("stim_type should match input_type")
+        if 'freq' not in kwargs.keys():
+            raise ValueError("You are required to include freq in the arguments for this input_type")
+        if 'ic_amp' in kwargs.keys():
+            raise ValueError("Ic_amp should not be in the arguments for this input_type")
+
+    el = kwargs['el'] if 'el' in kwargs else None
+    amp = kwargs['amp'] if 'amp' in kwargs else None
+    freq = kwargs['freq'] if 'freq' in kwargs else None
+    ic_amp = kwargs['ic_amp'] if 'ic_amp' in kwargs else None
+
+    return el, amp, freq, ic_amp
 
 
 #################################################
@@ -59,7 +98,11 @@ def format_el(el):
 
 def format_amp(amp):
     """ Formatting of amp for easier naming. Idempotent """
-    return amp if type(amp) == str else "{0:.0f}".format( math.fabs(amp * 1000.) )
+    return amp if type(amp) == str else "{0:.0f}".format( math.fabs(amp * 1000000.)) # takes in mA and Returns in nA
+
+def format_icamp(ic_amp):
+    """ Formatting of amp for easier naming. Idempotent """
+    return ic_amp if type(ic_amp) == str else "{0:.0f}".format( ic_amp * 1000.) # takes in nA and Return in PA
 
 def format_freq(freq):
     """ Formatting of freq for naming. Idempotent. """
@@ -86,17 +129,67 @@ def get_reobase_dir(*args):
     network_root = get_dir_root()
     return concat_path(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
 
-def get_output_dir(stim_type, model_type, cell_gid, *args):
+def get_output_dir(input_type, stim_type, model_type, cell_gid, *args):
     """ Get dir containing runs for given params """
     reobase_dir = get_reobase_dir()
-    return concat_path(reobase_dir, 'Run_folder/outputs/', stim_type, model_type, cell_gid, *args)
+    return concat_path(reobase_dir, 'Run_folder/outputs/', input_type, stim_type, model_type, cell_gid, *args)
 
 def get_electrode_path(electrodes_dir, gid, el):
     return concat_path(electrodes_dir, str(gid) + '_' + format_el(el) + '.csv')
 
-def get_config_resolved_path(out_folder, el, amp):
-    key = resolve_dc_key(el, amp)
+def get_config_resolved_path(stim_type, out_folder, el, amp, freq= None, ic_amp= None):
+    if stim_type == "dc":
+        key = resolve_dc_key(el, amp)
+    if stim_type == "sin":
+        key = resolve_sin_key(el, amp, freq)
+    if stim_type == "sin_dc":
+        key = resolve_sin_dc_key(el,amp, freq, ic_amp)
+
     return concat_path(out_folder, 'config_' + key + '_resolved.json')
+
+### reolve the stim_type
+
+def resolve_key(el, amp, freq=None, ic_amp=None):
+    if all(v is None for v in [freq, ic_amp]):
+        resolve_dc_key(el,amp)
+    elif freq is not None and ic_amp is None:
+        resolve_sin_key(el, amp, freq)
+    else:
+        resolve_sin_dc_key(el, amp, freq, ic_amp)
+
+def get_dir_name(el, amp, freq=None, ic_amp=None, trial =0):
+    if all(v is None for v in [freq, ic_amp]):
+        return get_dc_dir_name(el, amp, trial)
+    elif freq is not None and ic_amp is None:
+        return get_sin_dir_name(el, amp, freq, trial)
+    else:
+        return get_sin_dc_dir_name(el, amp, freq, ic_amp, trial)
+
+
+# def get_outout_dir(cell_gid, input_type, stim_type, model_type, el, amp, trial= 0 , freq=None, ic_amp = None):
+#     if stim_type == "dc":
+#         get_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, trial)
+#     if stim_type == "sin":
+#         get_sin_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, trial)
+#     if stim_type == "sin_dc":
+#         get_sin_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial)
+
+
+### SIN_DC ###
+
+def resolve_sin_dc_key(el, amp, freq, ic_amp):
+    """ file/folder name code """
+    parts = ['el' + format_el(el), 'amp' + format_amp(amp), 'freq' + format_freq(freq), 'icamp' + format_icamp(ic_amp)]
+    return '_'.join(parts)
+
+def get_sin_dc_dir_name(el, amp, freq, ic_amp, trial):
+    return '_'.join([resolve_sin_dc_key(el, amp, freq, ic_amp), 'tr' + str(trial)])
+
+def get_sin_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial=0):
+    root_dir = get_output_dir(input_type , stim_type, model_type, cell_gid)
+    out_dir = get_sin_dc_dir_name(el, amp, freq, ic_amp, trial)
+    return concat_path(root_dir, out_dir)
+
 
 ### DC ###
 
@@ -108,8 +201,8 @@ def resolve_dc_key(el, amp):
 def get_dc_dir_name(el, amp, trial):
     return '_'.join([resolve_dc_key(el, amp), 'tr' + str(trial)])
 
-def get_dc_output_dir(cell_gid, el, amp, model_type, trial):
-    root_dir = get_output_dir(StimType.DC, model_type, cell_gid)
+def get_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, trial):
+    root_dir = get_output_dir(input_type, stim_type, model_type, cell_gid)
     out_dir = get_dc_dir_name(el, amp, trial)
     return concat_path(root_dir, out_dir)
 
@@ -123,15 +216,15 @@ def resolve_sin_key(el, amp, freq):
 def get_sin_dir_name(el, amp, freq, trial):
     return '_'.join([resolve_sin_key(el, amp, freq), 'tr' + str(trial)])
 
-def get_sin_output_dir(cell_gid, el, amp, freq, model_type=ModelType.PERISOMATIC, trial=0):
-    root_dir = get_output_dir(StimType.SIN, model_type, cell_gid)
+def get_sin_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, trial=0):
+    root_dir = get_output_dir(input_type, stim_type, model_type, cell_gid)
     out_dir = get_sin_dir_name(el, amp, freq, trial)
     return concat_path(root_dir, out_dir)
 
 ### Tables ###
 
-def get_table_dir(stim_type, model_type, *args):
-    return get_reobase_dir('Run_folder/result_tables/', stim_type, model_type, *args)
+def get_table_dir(input_type, stim_type, model_type, *args):
+    return get_reobase_dir('Run_folder/result_tables/', input_type, stim_type, model_type, *args)
 
 def get_table_filename(cell_gid, amp,trial):
     return 'table_{}_amp{}_tr{}.h5'.format(cell_gid, format_amp(amp), trial)
@@ -199,13 +292,62 @@ def get_cell_xyz(cell_file):  # Ideally you would use the method bionet uses
 
 dc_cols = ['trial', 'electrode', 'x', 'y', 'z', 'distance', 'amp', 'spikes']
 vm_cols = ['vm_stim', 'delta_vm']
+iclamp_cols = ['ic_amp']
+sin_cols=['fq']
+vm_phase_analysis_cols = ['vm_amp', 'vm_phase']
+vext_phase_analysis_cols = ['vext_amp', 'vext_phase']
 
-def resolve_run_id(gid, electrode, amp):
-    """ Unique run id (per stim type) """
-    stringified = map(str, [gid, electrode, format_amp(amp)])
-    return '_'.join(stringified)  # using current in micro amps
+def resolve_additional_cols(include_delta_vm, include_sin, include_iclamp, include_vm_phase_analysis, include_vext_phase_analysis):
+    """ Find all the additional columns for the table"""
+    cols = []
 
-def build_dc_df(additional_cols=[]):
+    if include_delta_vm:
+        cols= cols + vm_cols
+    if include_sin:
+        cols= cols + sin_cols
+    if include_iclamp:
+        cols= cols + iclamp_cols
+    if include_vm_phase_analysis:
+        cols= cols + vm_phase_analysis_cols
+    if include_vext_phase_analysis:
+        cols = cols + vext_phase_analysis_cols
+
+    return cols
+
+def resolve_output_aggregates(include_delta_vm, include_sin, include_iclamp, amp, trial):
+    """ Find all the outputs for the table"""
+    if  not include_sin and not include_iclamp:
+        return get_dc_dir_name(9999, amp, trial).replace('9999', '*')
+    if include_sin and not include_iclamp:
+        return get_dir_name(el=9999, amp=amp, freq=999, ic_amp=None, trial=trial) .replace('9999', '*').replace('999', '*')
+    if include_iclamp:
+        return get_dir_name(el=9999, amp=amp, freq=999, ic_amp=0.099, trial=trial).replace('9999', '*').replace('999', '*').replace('99', '*')
+
+
+# def resolve_dc_run_id(gid, electrode, amp):
+#     """ Unique run id (per stim type) """
+#     stringified = map(str, [gid, electrode, format_amp(amp)])
+#     return '_'.join(stringified)  # using current in micro amps
+#
+# def resolve_sin_dc_run_id(gid, electrode, amp, freq, ic_amp):
+#     stringified = map(str, [gid, electrode, format_amp(amp), freq, ic_amp])
+#     return '_'.join(stringified)
+#
+# def resolve_sin_run_id(gid, electrode, amp, freq):
+#     stringified = map(str, [gid, electrode, format_amp(amp), freq])
+#     return '_'.join(stringified)
+
+def resolve_run_id(gid, electrode, amp, freq=None, ic_amp=None):
+    if freq is not None and ic_amp is not None:
+        stringified = map(str, [gid, electrode, format_amp(amp), freq, format_icamp(ic_amp)])
+    if freq is not None and ic_amp is None:
+        stringified = map(str, [gid, electrode, format_amp(amp), freq])
+    if freq is None and ic_amp is None:
+        stringified = map(str, [gid, electrode, format_amp(amp)])
+    return '_'.join(stringified)
+
+
+def build_df(additional_cols=[]):
     """ Wrapped df creation to give place to explicitly declare column types """
     df = pd.DataFrame(columns=(dc_cols + additional_cols))
     # pd doesn't do a great job of identifying ints
@@ -219,8 +361,29 @@ def read_table_h5(fpath):
     """ h5 to dataframe """
 
     with h5.File(fpath, 'r') as f5:
-        extra_cols = vm_cols if 'has_vm_data' in f5.attrs and f5.attrs['has_vm_data'] else []
-        table = build_dc_df(extra_cols)
+
+        extra_cols = []
+        if 'has_vm_data' in f5.attrs and f5.attrs['has_vm_data']:
+            extra_cols = extra_cols + vm_cols
+        if 'has_sin' in f5.attrs and f5.attrs['has_sin']:
+
+            extra_cols = extra_cols + sin_cols
+        if 'has_iclamp' in f5.attrs and f5.attrs['has_iclamp']:
+
+            extra_cols = extra_cols + iclamp_cols
+        if 'has_vm_phase_analysis' in f5.attrs and f5.attrs['has_vm_phase_analysis']:
+
+            extra_cols = extra_cols + vm_phase_analysis_cols
+        if 'has_vext_phase_analysis' in f5.attrs and f5.attrs['has_vext_phase_analysis']:
+
+            extra_cols = extra_cols + vext_phase_analysis_cols
+
+        # extra_cols = vm_cols + sin_cols  if 'has_vm_data' in f5.attrs and f5.attrs['has_vm_data'] else []
+        # extra_cols = vm_cols + iclamp_cols + sin_cols if 'has_iclamp' in f5.attrs and f5.attrs['has_iclamp'] else []
+
+        table = build_df(extra_cols)
+        # table = build_df(extra_cols)
+
         ids = f5['ids'].value
         spike_data = f5['spikes']
 
@@ -241,28 +404,25 @@ def write_table_h5(fpath, df, attrs=None):
     df.sort_values('electrode', inplace=True)
     with h5.File(fpath, 'w') as f5:
         f5.create_dataset('ids', data=map(str, df.index))
-
         for col in df.columns:
             if col != 'spikes': # cuz it will explode if it is type 'object'
                 f5.create_dataset(col, data=df[col])
-
         spike_grp = f5.create_group('spikes')
         for (rid, spike_times) in df.spikes.iteritems():
             spike_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=spike_times)
-
         if attrs is not None:
             for k,v in attrs.iteritems():
                 f5.attrs[k] = v
 
 
-def read_cell_tables(cell_gid, amp_range, stim_type, model_type, trial,
+def read_cell_tables(cell_gid, amp_range, input_type,stim_type, model_type, trial,
                      data_dir=None):
     """ Read h5 files for a set of amplitudes """
     # print "Fetching data..."
-    data_dir = get_table_dir(stim_type, model_type) if data_dir is None else data_dir
+    data_dir = get_table_dir(input_type, stim_type, model_type) if data_dir is None else data_dir
     paths = [concat_path(data_dir, get_table_filename(cell_gid, a, trial)) for a in amp_range]
 
-    t = build_dc_df()  # do this for code analysis
+    t = build_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
     t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
     t['num_true_spikes'] = np.where(t['num_spikes'] == 1, 0, t['num_spikes'])
@@ -281,7 +441,7 @@ def read_cell_rows(cell_gid, els, amps, stim_type , trial,
     els = [els] if type(els) is not list else els
     amps = [amps] if type(amps) is not list else amps # non-formatted
     data_cols = [x for x in dc_cols if x != 'spikes']
-    table = build_dc_df()
+    table = build_df()
 
     for amp in amps:
         fpath = concat_path(data_dir, get_table_filename(cell_gid, amp, trial))
@@ -300,6 +460,20 @@ def read_cell_rows(cell_gid, els, amps, stim_type , trial,
 
     return table
 
+def get_index_close_els(cell_gid, input_type, stim_type, model_type):
+    """Get list of bad electrodes for which the simulation was not finished"""
+    output_dir = get_output_dir(cell_gid=cell_gid,input_type=input_type, stim_type=stim_type,
+                               model_type=model_type)
+    index_list=[]
+    for filename in os.listdir(output_dir):
+        log_file= concat_path(output_dir, filename, "/log.txt")
+        if 'External electrode is too close' in open(log_file).read():
+            el = int([x for x in filename.split('_') if x.startswith('el')][0][2:])
+            ic_amp = int([x for x in filename.split('_') if x.startswith('icamp')][0][5:]) * 0.001 if "icamp" in filename else None
+            fq = int([x for x in filename.split('_') if x.startswith('freq')][0][4:]) if "freq" in filename else None
+            amp = int([x for x in filename.split('_') if x.startswith('amp')][0][3:]) * 0.000001
+            index_list.append(resolve_run_id(gid= cell_gid, electrode= el, amp=amp, freq=fq, ic_amp=ic_amp))
+    return index_list
 
 #############################################
 

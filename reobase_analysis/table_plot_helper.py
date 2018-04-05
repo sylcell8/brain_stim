@@ -46,6 +46,10 @@ def plot_mediancol1_col2(gids_list, colname1, colname2, amp, stim_type, model_ty
     ax.tick_params(labelsize=15)
     ax.boxplot(filtered_data, showmeans=True, boxprops=boxprops, medianprops=medianprops)
     ax.set_xticklabels(["{0:4.2f}".format(x) for x in d_list])
+    Fig_folder="/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_figures/dc/progress_report_figs/"
+    Fig_name = "Fig.png"
+    plt.savefig(Fig_folder + Fig_name)
+
     plt.show()
 
 
@@ -97,3 +101,63 @@ def Build_subthreshold_comparison_table(gid, Model_Type, Stim_Type, list_trials,
         # table_pass_peri["avg_deltav"] = (table_pass_peri["delta_vm0"] + table_pass_peri["delta_vm1"]) / 2.
         return table_pass_peri
 
+##################################################
+#                                                #
+#                 SIN_DC plots                   #
+#                                                #
+##################################################
+
+def plot_vm_phase_els_Iclamp(table, ic_amp, fq_range):
+    fig = plt.figure(figsize=(20,8))
+    for fq in fq_range:
+        df = table[(table["ic_amp"]==ic_amp) & (table["fq"]==fq)]
+        plt.plot(df["electrode"],df["vm_phase"], marker='o', label="vm_fq={}".format(fq))
+
+    plt.title("Vm and Vext phase as a function of el_id for different frequencies at Iclamp={}pA".format(ic_amp*1000), fontsize=20)
+    plt.plot(df["electrode"],df["vext_phase"], label="Vext")
+    plt.xlabel("Electrode id", fontsize=20)
+    plt.ylabel("Phase (degree)", fontsize=20)
+    plt.legend(fontsize=15)
+    plt.show()
+
+
+def plot_vm_phase_els_freq(table, ic_amp_range, freq):
+
+    fig = plt.figure(figsize=(20,8))
+    for icamp in ic_amp_range:
+        df = table[(table["ic_amp"]==icamp) & (table["fq"]==freq)]
+        plt.plot(df["electrode"],df["vm_phase"], marker='o', label="vm_icamp={}".format(icamp))
+
+    plt.title("Vm and Vext phase as a function of el_id for different Iclamp at fq={}".format(freq), fontsize=20)
+    plt.plot(df["electrode"],df["vext_phase"], label="Vext")
+    plt.xlabel("Electrode id", fontsize=20)
+    plt.ylabel("Phase (degree)", fontsize=20)
+    plt.legend(fontsize=15)
+    plt.show()
+
+def plot_vm_amplitude_els_Iclamp(table, ic_amp, fq_range):
+    fig = plt.figure(figsize=(20,8))
+    for fq in fq_range:
+        df = table[(table["ic_amp"]==ic_amp) & (table["fq"]==fq)]
+        plt.plot(df["electrode"],df["vm_amp"], marker='o', label="vm_fq={}".format(fq))
+
+    plt.title("Vm and Vext amplitude as a function of el_id for different frequencies at Iclamp={}pA".format(ic_amp*1000), fontsize=20)
+    plt.plot(df["electrode"],df["vext_amp"], label="Vext")
+    plt.xlabel("Electrode id", fontsize=20)
+    plt.ylabel("Amplitude (mV)", fontsize=20)
+    plt.legend(fontsize=15)
+    plt.show()
+
+def plot_vm_amplitude_els_freq(table, ic_amp_range, freq):
+
+    fig = plt.figure(figsize=(20,8))
+    for icamp in ic_amp_range:
+        df = table[(table["ic_amp"]==icamp) & (table["fq"]==freq)]
+        plt.plot(df["electrode"],df["vm_amp"], marker='o', label="vm_icamp={}".format(icamp))
+
+    plt.title("Vm and Vext amplitude as a function of el_id for different Iclamp at fq={}".format(freq), fontsize=20)
+    plt.plot(df["electrode"],df["vext_amp"], label="Vext")
+    plt.xlabel("Electrode id", fontsize=20)
+    plt.ylabel("Amplitude (mV)", fontsize=20)
+    plt.legend(fontsize=15)
+    plt.show()

@@ -52,6 +52,34 @@ mlb.rcParams.update({
 #
 #################################################
 
+def get_cellvar_timeseries(output, var_name,cell=None):
+
+    cvfiles = get_cv_files(output, [cell]) if cell is not None else get_cv_files(output)
+    tstop = cvfiles[0].attrs['tstop']
+    dt = cvfiles[0].attrs['dt']
+    return  np.arange(0,tstop,dt), cvfiles[0][var_name].value
+
+def get_cell_cellvar_timeseries(var_name, cell_id,input_type, stim_type, model_type, trial, amp, el, ic_amp= None, freq= None):
+
+    print "try: tc.get_cell_cellvar_timeseries(var_name, cell_id,input_type, stim_type, model_type, trial, amp, el, ic_amp= None, freq= None) "
+    output_dir = get_output_dir(input_type, stim_type, model_type, cell_id)
+    output_file = get_dir_name(el, amp, freq, ic_amp, trial)
+    path = concat_path(output_dir, output_file)
+    t, var = get_cellvar_timeseries(path, var_name)
+    return t, var
+
+def get_tstep(output, cell=None):
+    cvfiles = get_cv_files(output, [cell]) if cell is not None else get_cv_files(output)
+    dt = cvfiles[0].attrs['dt']
+    tstop = cvfiles[0].attrs['tstop']
+    return  np.arange(0,tstop,dt), dt
+
+def get_cell_vrest(cell_id,input_type, stim_type, model_type, trial, amp, el, ic_amp= None, freq= None):
+    pass
+    # cvfiles = get_cv_files(output, [cell]) if cell is not None else get_cv_files(output)
+    # vrest = cvfiles[0].attrs['tstop']
+    # dt = cvfiles[0].attrs['dt']
+    # return  np.arange(0,tstop,dt), cvfiles[0][var_name].value
 
 def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 7),
                                 ticks_every=500, show_legend=True, **kwargs):
@@ -67,16 +95,22 @@ def get_cellvar_timeseries_plot(output, var_name, ax=None, cell=None, size=(13, 
         plot_args = {}
         plot_args['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
         plot_args['c'] = kwargs['c'] if 'c' in kwargs else None
-        ax.plot(np.arange(0,tstop,dt), f[var_name].value, lw=2.5, **plot_args)
+        ax.plot(np.arange(0,tstop,dt), f[var_name].value , lw=2.5, **plot_args)
     #    var.append(f[var_name].value)
     xtick_location, xtick_labels = calc_xticks([0, tstop], ticks_every)
     ax.set_xticks(xtick_location)
     ax.set_xticklabels(xtick_labels)
+    # ax.set_xlim(1100,5000)
+    # ax.set_ylim( -2,2)
+    # Fig_folder="/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/"
+    # Fig_name = "extrastim.png"
+    # plt.savefig(Fig_folder + Fig_name)
+
     
     if show_legend:
         ax.legend(loc='upper left')
+    # return np.arange(0,tstop,dt), f[var_name].value
     return ax
-    # return var, ax
 
 def get_spikes_raster_plot(output, size=None, ax=None, ticksEvery=500, **kwargs):
 
@@ -174,8 +208,40 @@ def plot_vm(output, **kwargs):
     ax.set_title('Membrane Voltage')
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('$V_m$ (mV)')
+
     plt.show()
 
+def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, ic_amp=None,  twin=None, ax=None):
+
+    print "try: plot_cell_vm(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial, twin=None, ax=None)"
+    output_dir = get_output_dir(input_type=input_type, stim_type=stim_type, model_type=model_type, cell_gid=cell_id)
+    output_file = get_dir_name(el=el, amp=amp, freq=freq, ic_amp=ic_amp, trial=trial)
+    out_dir = concat_path(output_dir, output_file)
+    cvh5 = get_cv_files(out_dir, [0])[0]
+    dt = cvh5.attrs['dt']
+    var = cvh5[var_name].value
+
+    if twin is not None:
+        beg_cut = twin[0]
+        end_cut = twin[1]
+    else:
+        beg_cut =0
+        end_cut = len(var)
+
+    T = dt * 0.001
+    N = len(var)
+    x = np.linspace(0, N * T, N)
+
+    if not ax:
+        fig = plt.figure(figsize=(20, 3))
+        ax = plt.subplot(111)
+
+    ax.plot(x[beg_cut:end_cut], var[beg_cut:end_cut] - np.mean(var[beg_cut:end_cut]), label=str(var_name))
+    ax.set_xlabel("Time(s)")
+    ax.set_ylabel(" Voltage (mV)")
+    # ax.set_ylim(-3,3)
+    ax.legend()
+    return ax
 
 def plot_vext(output, **kwargs):
     ax = get_cellvar_timeseries_plot(output, 'vext', **kwargs)

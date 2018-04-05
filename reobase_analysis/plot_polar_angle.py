@@ -50,6 +50,9 @@ def plot_modulation_comparison(gid_list1, gid_list2, colname, amp, stim_type, mo
 
     for patch in bp['boxes']:
         patch.set(facecolor='orange')
+    Fig_folder = "/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_figures/dc/progress_report_figs/"
+    Fig_name = "Figa.png"
+    plt.savefig(Fig_folder + Fig_name)
 
     plt.show()
 
@@ -75,6 +78,9 @@ def plot_modulation_comparison(gid_list1, gid_list2, colname, amp, stim_type, mo
 
     for patch in bp['boxes']:
         patch.set(facecolor='cyan')
+    Fig_folder = "/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_figures/dc/progress_report_figs/"
+    Fig_name = "Figb.png"
+    plt.savefig(Fig_folder + Fig_name)
 
     plt.show()
 
@@ -84,14 +90,14 @@ def plot_modulation_comparison(gid_list1, gid_list2, colname, amp, stim_type, mo
     boxprops = dict(linewidth=1.5)
     medianprops1 = dict(linestyle='-', linewidth=1.5, color='red')
     medianprops2 = dict(linestyle='-', linewidth=1.5, color='blue')
-    bp = ax.boxplot(filtered_data1, showmeans=True, boxprops=boxprops, medianprops=medianprops1, patch_artist=True)
+    bp = ax.boxplot(filtered_data2, showmeans=True, boxprops=boxprops, medianprops=medianprops2, patch_artist=True)
     for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
         plt.setp(bp[element], color='red')
 
     for patch in bp['boxes']:
         patch.set(facecolor='orange')
 
-    bp = ax.boxplot(filtered_data2, showmeans=True, boxprops=boxprops, medianprops=medianprops2, patch_artist=True)
+    bp = ax.boxplot(filtered_data1, showmeans=True, boxprops=boxprops, medianprops=medianprops1, patch_artist=True)
     for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
         plt.setp(bp[element], color='blue')
 
@@ -108,6 +114,9 @@ def plot_modulation_comparison(gid_list1, gid_list2, colname, amp, stim_type, mo
         ax.set_ylabel('Spike frequency (Hz)', fontsize=20)
 
     ax.legend()
+    Fig_folder="/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_figures/dc/progress_report_figs/"
+    Fig_name = "Figc.png"
+    plt.savefig(Fig_folder + Fig_name)
     plt.show()
 
 
@@ -191,6 +200,9 @@ def plot_median_colname_vs_theta(gids_list, colname, amp, stim_type, model_type,
     ax.tick_params(labelsize=15)
     ax.boxplot(filtered_data, showmeans=True, boxprops=boxprops, medianprops=medianprops)
     ax.set_xticklabels(["{0:4.2f}".format(x) for x in (np.array(rads) * 180 / np.pi)], rotation='vertical')
+    # Fig_folder="/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_figures/dc/progress_report_figs/"
+    # Fig_name = "Fig.png"
+    # plt.savefig(Fig_folder + Fig_name)
     plt.show()
 
 

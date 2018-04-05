@@ -48,7 +48,7 @@ class WaveformTypeSin(BaseWaveformType, BaseWaveform):
     def __init__(self, waveform_config):
         super(WaveformTypeSin, self).__init__(waveform_config)
         self.freq         = float(waveform_config["freq"])   # Hz
-        self.phase_offset = float(waveform_config.get("phase", 0))  # radians, optional
+        self.phase_offset = float(waveform_config.get("phase", np.pi))  # radians, optional
         self.amp_offset   = float(waveform_config.get("offset", 0)) # units? mA? optional
 
     def calculate(self, t): # TODO better name
@@ -123,3 +123,20 @@ def stimx_waveform_factory(conf):
     Constructor = shape_classes[shape_key]
 
     return Constructor(waveform_conf)
+
+def iclamp_waveform_factory(conf):
+    """
+    Factory to create correct waveform class based on conf.
+    Supports json config in conf as well as string pointer to a file.
+    :rtype: BaseWaveformType
+    """
+    iclamp_waveform_conf = conf["iclamp"]
+
+    shape_key = iclamp_waveform_conf["shape"].lower()
+
+    if shape_key not in shape_classes:
+        print "Warning: iclamp waveform shape not known" # throw error?
+
+    Constructor = shape_classes[shape_key]
+
+    return Constructor(iclamp_waveform_conf)
