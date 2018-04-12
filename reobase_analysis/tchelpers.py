@@ -203,13 +203,14 @@ def calc_xticks(tlimits,ticksEvery):
 #################################################
 
 
-def plot_vm(output, **kwargs):
-    ax = get_cellvar_timeseries_plot(output, 'vm', **kwargs)
+def plot_vm(output, ax=None, **kwargs):
+
+    ax = get_cellvar_timeseries_plot(output, 'vm', ax=ax, **kwargs)
     ax.set_title('Membrane Voltage')
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('$V_m$ (mV)')
-
-    plt.show()
+    return ax
+    # plt.show()
 
 def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, ic_amp=None,  twin=None, ax=None):
 
@@ -237,10 +238,13 @@ def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp,
         ax = plt.subplot(111)
 
     ax.plot(x[beg_cut:end_cut], var[beg_cut:end_cut] - np.mean(var[beg_cut:end_cut]), label=str(var_name))
+    # ax.plot(x[beg_cut:end_cut], var[beg_cut:end_cut], label=str(var_name))
+
     ax.set_xlabel("Time(s)")
     ax.set_ylabel(" Voltage (mV)")
     # ax.set_ylim(-3,3)
     ax.legend()
+    # print np.mean(var[220000:239800])
     return ax
 
 def plot_vext(output, **kwargs):

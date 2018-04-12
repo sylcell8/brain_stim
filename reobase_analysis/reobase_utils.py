@@ -129,6 +129,9 @@ def get_reobase_dir(*args):
     network_root = get_dir_root()
     return concat_path(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
 
+def get_saved_data_dir(*args):
+    return concat_path('/local2/Data_cube/reobase', *args)
+
 def get_output_dir(input_type, stim_type, model_type, cell_gid, *args):
     """ Get dir containing runs for given params """
     reobase_dir = get_reobase_dir()

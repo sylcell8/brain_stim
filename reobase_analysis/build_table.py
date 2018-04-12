@@ -110,7 +110,9 @@ def extract_vm_data(cvh5, delay, dur):
     vm_rest = vm[get_step(delay - 500):get_step(delay - 5)].mean()
 
     if len(spikes) < 2: # ensure subthreshold or edge case
-        vm_stim = vm[get_step(delay + dur - 500):get_step(delay + dur - 5)].mean()
+        vm_stim = vm[get_step(delay + dur - 4000):get_step(delay + dur-5)].mean()
+        if (dur) < 4000:
+            print "ERROR in calculating vm_stim"
     else:
         vm_stim = np.NaN
 

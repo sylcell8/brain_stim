@@ -3,8 +3,72 @@ import pandas as pd
 import matplotlib as mlb
 import matplotlib.pyplot as plt
 import reobase_analysis.reobase_utils as ru
+from matplotlib.mlab import griddata
 import h5py
 
+
+def get_grouped_dic(cell_list, input_type, stim_type, model_type, amp_range, trial, groupby_cols, agg_cols):
+    data = {}
+    for cell_id in cell_list:
+        table = ru.read_cell_tables(input_type=input_type, stim_type=stim_type, model_type=model_type,
+                                    cell_gid=cell_id, amp_range=amp_range, trial=trial)
+        print "finished reading the table for cell_id:", cell_id
+        index_close_els = ru.get_index_close_els(cell_id, input_type, stim_type, model_type)
+        table = table.drop(index_close_els)
+        print "Turned Vm_phase to vm_phase +360"
+        table.loc[table["vm_phase"] < 0, "vm_phase"] = table["vm_phase"] + 360
+
+        data[cell_id] = table.groupby(groupby_cols)[agg_cols].mean().reset_index()
+    return data
+
+
+def get_merged_table(dic, merge_cols):
+    dfs = [v for k, v in dic.iteritems()]
+    merged = reduce(lambda left, right: pd.merge(left, right, on=merge_cols, how='outer'), dfs)
+    return merged
+
+
+def get_agg_merged_colnames(merged_table, var_name):
+
+    var_agg_merged_colname = np.unique([col for col in merged_table.columns if var_name in col]).tolist()
+    return var_agg_merged_colname
+
+
+def get_stdcol_3d_colorbar(merged_table, var_name):
+    col = var_name
+    agg_merged_colnames = get_agg_merged_colnames(merged_table, var_name)
+    std_col = merged_table[agg_merged_colnames].std(axis=1).as_matrix()
+    n_sample = len(std_col)
+    std_col = std_col/np.sqrt(n_sample)
+    return std_col
+
+def get_meancol_3d_colorbar(merged_table, var_name):
+    col = var_name
+    agg_merged_colnames = get_agg_merged_colnames(merged_table, var_name)
+    mean_col = merged_table[agg_merged_colnames].mean(axis=1).as_matrix()
+    return mean_col
+
+
+def get_mesh_X_Y_Z_Z1(merged_table, xcol, zcol, z1col, ycol="distance", error=False):
+    
+    x = get_meancol_3d_colorbar(merged_table, xcol)
+    z = get_meancol_3d_colorbar(merged_table, zcol)
+    z1 = get_meancol_3d_colorbar(merged_table, z1col)
+    if error:
+	print "error"
+        x = get_meancol_3d_colorbar(merged_table, xcol)
+        z = get_stdcol_3d_colorbar(merged_table, zcol)
+        z1 = get_stdcol_3d_colorbar(merged_table, z1col)
+
+    y = merged_table["distance"].as_matrix()
+
+    xi = np.linspace(np.min(x), np.max(x))
+    yi = np.linspace(np.min(y), np.max(y))
+
+    X, Y = np.meshgrid(xi, yi)
+    Z = griddata(x, y, z, xi, yi, interp='linear')
+    Z1 = griddata(x, y, z1, xi, yi, interp='linear')
+    return X, Y, Z, Z1
 
 
 def plot_mediancol1_col2(gids_list, colname1, colname2, amp, stim_type, model_type, trial):
