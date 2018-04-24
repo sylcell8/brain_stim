@@ -145,14 +145,15 @@ def get_median (gids_list, colname, amp, stim_type, model_type, trial, nbins=14,
     return rads, med_dic
 
 
-def plot_median_colname_vs_theta(gids_list, colname, amp, stim_type, model_type, trial, nbins=14, distance=None):
+def plot_median_colname_vs_theta(gids_list, colname, amp, input_type, stim_type, model_type, trial, nbins=14, distance=None):
 
     data_dic = {}
     rads = []
     med_dic = {}
 
     for gid in gids_list:
-        t = generate_theta(gid, [amp], stim_type, model_type, trial)
+        print "running analyis for gid:", gid
+        t = generate_theta(gid, [amp], input_type, stim_type, model_type, trial)
         bins = np.linspace(0, np.pi, 14)
         categories = pd.cut(t["theta"], bins)
         groups = t.groupby(categories)
@@ -183,15 +184,15 @@ def plot_median_colname_vs_theta(gids_list, colname, amp, stim_type, model_type,
     fig.set_figwidth(15)
     ax = fig.add_subplot(111)
 
-    if colname == "delta_vm":
-        ax.set_title('$\Delta$Vm distribution by polar angle $\Theta$ (amp = {}, distance={})'.format(amp, distance),
-                     fontsize=15)
-        ax.set_ylabel('$\Delta$Vm (mV)', fontsize=20)
-    else:
-        ax.set_title(
-            'Spike frequency distribution by polar angle $\Theta$ (amp = {}, distance={})'.format(amp, distance),
-            fontsize=15)
-        ax.set_ylabel('Spike frequency (Hz)', fontsize=20)
+    # if colname == "delta_vm":
+    #     ax.set_title('$\Delta$Vm distribution by polar angle $\Theta$ (amp = {}, distance={})'.format(amp, distance),
+    #                  fontsize=15)
+    #     ax.set_ylabel('$\Delta$Vm (mV)', fontsize=20)
+    # else:
+    #     ax.set_title(
+    #         'Spike frequency distribution by polar angle $\Theta$ (amp = {}, distance={})'.format(amp, distance),
+    #         fontsize=15)
+    #     ax.set_ylabel('Spike frequency (Hz)', fontsize=20)
 
     ax.set_xlabel('$\Theta$ (degree)')
     boxprops = dict(linewidth=1.5)
@@ -250,9 +251,9 @@ def plot(t, amp, col_name, nbins=14, save_name=None):
     #     plt.show()
 
 
-def XY(cell_gid, inputs, col_name, stim_type, model_type, trial, dist, nbins=14, save_name=None):
+def XY(cell_gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, nbins=14, save_name=None):
 
-    t = r.read_cell_tables(cell_gid, inputs, stim_type, model_type, trial)
+    t = r.read_cell_tables(cell_gid, inputs, input_type, stim_type, model_type, trial)
     t['theta'], t['phi'] = ra.spherical_coords(t)
 
     t = t[(t.distance == dist)] # exclude closest layer
@@ -271,9 +272,9 @@ def XY(cell_gid, inputs, col_name, stim_type, model_type, trial, dist, nbins=14,
     # return np.array(X)/np.pi
 
 
-def generate_theta(cell_gid, amp, stim_type, model_type, trial, *args, **kwargs):
+def generate_theta(cell_gid, amp, input_type, stim_type, model_type, trial, *args, **kwargs):
     """ Same as 'plot' but fetches data for you """
-    t = r.read_cell_tables(cell_gid, amp, stim_type, model_type, trial)
+    t = r.read_cell_tables(cell_gid, amp, input_type, stim_type, model_type, trial)
     t['theta'], t['phi'] = ra.spherical_coords(t)
     return t
     # plot(t, amp, colname, *args, **kwargs)
@@ -301,11 +302,11 @@ print 'For an example try pol(313862022, "dc", "perisomatic") function'
 
 # default()
 
-def fit_sin(gid, inputs, col_name, stim_type, model_type, trial, dist):
+def fit_sin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist):
     from scipy.optimize import leastsq
     import pylab as plt
 
-    tempX, tempY = XY(gid, inputs, col_name, stim_type, model_type, trial, dist)
+    tempX, tempY = XY(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist)
     YY = []
     XX = []
     niter = 0
@@ -359,10 +360,10 @@ def fit_sin(gid, inputs, col_name, stim_type, model_type, trial, dist):
     plt.tick_params(labelsize=15)
     plt.title("HETRO")
     plt.legend()
-    plt.show()
+    # plt.show()
     #     return np.abs(est_stdXX), est_phaseXX * 360  / (2*np.pi) , data_fitXX.min(), np.abs(est_stdXX)/data_fitXX.min()
     # return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
-    # return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+    return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
 
 def get_modulation (gid, inputs, col_name, stim_type, model_type, trial, dist):
     from scipy.optimize import leastsq

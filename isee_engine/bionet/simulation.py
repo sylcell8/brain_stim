@@ -285,8 +285,8 @@ class Simulation(object):
                     cell_data_block['vm'][tstep_block-1] = cell.hobj.soma[0](0.5).v   # subtract 1 because indexes start at 0 while the time step starts at 1
                     if self.conf["run"]["extra_stim"]:
                         cell_data_block['vext'][tstep_block-1] = cell.hobj.soma[0](0.5).vext[0]
-                        cell_data_block['EX'][tstep_block - 1] = cell.hobj.soma[0](0.5).e_extracellular
-                        cell_data_block['im'][tstep_block-1] = cell.hobj.soma[0](0.5).i_membrane
+                        # cell_data_block['EX'][tstep_block - 1] = cell.hobj.soma[0](0.5).e_extracellular
+                        # cell_data_block['im'][tstep_block-1] = cell.hobj.soma[0](0.5).i_membrane
 
                     # print  '{0:.30f}'.format(cell.hobj.soma[0](0.5).e_extracellular)
                                                       # ,

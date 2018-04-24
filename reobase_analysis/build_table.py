@@ -19,7 +19,7 @@ a constant input without external input. This allows us to look at the subthresh
 If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 """
 
-def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, include_delta_vm = True, include_sin = True, include_vm_phase_analysis=True, include_vext_phase_analysis=False):
+def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, include_delta_vm = True, include_sin = True, include_vm_phase_analysis=True, include_vext_phase_analysis=True):
 
     cell_csv_pattern = '/*_cel[ls]*csv'
     cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid)
@@ -96,7 +96,17 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
         print 'Done.'
 
 def extract_v_phase_analysis(var_name ,cvh5, delay, dur, freq):
-    var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, delay, dur, freq)
+
+    spikes = cvh5['spikes'].value
+    if len(spikes) < 1:
+        var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, delay, dur, freq)
+    else:
+        var_amp = np.NaN
+        var_phase = np.NaN
+
+    if var_name=="vext":
+        var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, delay, dur, freq)
+
     # print var_amp, var_phase, var_mean
     return [var_amp, var_phase]
 
@@ -109,9 +119,9 @@ def extract_vm_data(cvh5, delay, dur):
 
     vm_rest = vm[get_step(delay - 500):get_step(delay - 5)].mean()
 
-    if len(spikes) < 2: # ensure subthreshold or edge case
-        vm_stim = vm[get_step(delay + dur - 4000):get_step(delay + dur-5)].mean()
-        if (dur) < 4000:
+    if len(spikes) < 1: # ensure subthreshold or edge case
+        vm_stim = vm[get_step(delay + 1000):get_step(delay + dur-5)].mean()
+        if (dur) < 2000:
             print "ERROR in calculating vm_stim"
     else:
         vm_stim = np.NaN
