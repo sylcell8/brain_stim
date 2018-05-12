@@ -212,10 +212,10 @@ def plot_vm(output, ax=None, **kwargs):
     return ax
     # plt.show()
 
-def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, ic_amp=None,  twin=None, ax=None):
+def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp=None,  twin=None, ax=None):
 
     print "try: plot_cell_vm(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial, twin=None, ax=None)"
-    output_dir = get_output_dir(input_type=input_type, stim_type=stim_type, model_type=model_type, cell_gid=cell_id)
+    output_dir = get_output_dir(input_type=input_type, stim_type=stim_type, model_type=model_type, cell_gid=cell_id, saved_data = saved_data)
     output_file = get_dir_name(el=el, amp=amp, freq=freq, ic_amp=ic_amp, trial=trial)
     out_dir = concat_path(output_dir, output_file)
     cvh5 = get_cv_files(out_dir, [0])[0]
@@ -247,12 +247,12 @@ def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp,
     # print np.mean(var[220000:239800])
     return ax
 
-def plot_vext(output, **kwargs):
-    ax = get_cellvar_timeseries_plot(output, 'vext', **kwargs)
+def plot_vext(output,ax=None, **kwargs):
+    ax = get_cellvar_timeseries_plot(output, 'vext', ax=ax, **kwargs)
     ax.set_title('External Voltage')
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('$V_{ext}$ (mV)')
-    plt.show()
+    return ax
 
 def plot_im(output, **kwargs):
     ax = get_cellvar_timeseries_plot(output, 'im', **kwargs)

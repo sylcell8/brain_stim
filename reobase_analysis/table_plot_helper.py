@@ -13,8 +13,8 @@ def get_grouped_dic(cell_list, input_type, stim_type, model_type, amp_range, tri
         table = ru.read_cell_tables(input_type=input_type, stim_type=stim_type, model_type=model_type,
                                     cell_gid=cell_id, amp_range=amp_range, trial=trial)
         print "finished reading the table for cell_id:", cell_id
-        index_close_els = ru.get_index_close_els(cell_id, input_type, stim_type, model_type)
-        table = table.drop(index_close_els)
+        # index_close_els = ru.get_index_close_els(cell_id, input_type, stim_type, model_type)
+        # table = table.drop(index_close_els)
         print "Turned Vm_phase to vm_phase +360"
         table.loc[table["vm_phase"] < 0, "vm_phase"] = table["vm_phase"] + 360
 
@@ -55,7 +55,7 @@ def get_mesh_X_Y_Z_Z1(merged_table, xcol, zcol, z1col, ycol="distance", error=Fa
     z = get_meancol_3d_colorbar(merged_table, zcol)
     z1 = get_meancol_3d_colorbar(merged_table, z1col)
     if error:
-	print "error"
+        print "error"
         x = get_meancol_3d_colorbar(merged_table, xcol)
         z = get_stdcol_3d_colorbar(merged_table, zcol)
         z1 = get_stdcol_3d_colorbar(merged_table, z1col)

@@ -19,10 +19,12 @@ a constant input without external input. This allows us to look at the subthresh
 If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 """
 
-def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, include_delta_vm = True, include_sin = True, include_vm_phase_analysis=True, include_vext_phase_analysis=True):
+def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, include_delta_vm = True,
+                 include_sin = True, include_vm_phase_analysis=True, include_vext_phase_analysis=True,
+                 saved_data= False):
 
     cell_csv_pattern = '/*_cel[ls]*csv'
-    cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid)
+    cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
     include_iclamp = input_type == "extrastim_intrastim"
     additional_cols = ru.resolve_additional_cols(include_delta_vm, include_sin, include_iclamp,
                                                  include_vm_phase_analysis, include_vext_phase_analysis)
@@ -45,7 +47,7 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
             cvh5 = ru.get_cv_files(out_dir, [0])[0]
 
             conf = ru.get_json_from_file(config_path)
-            electrodes_dir = ru.get_dir_root() + '/' + '/'.join(conf['output']['electrodes_dir'].split('/')[2:])
+            electrodes_dir = ru.get_dir_root(saved_data) + '/' + '/'.join(conf['output']['electrodes_dir'].split('/')[2:])
             in_waveform = iclamp_waveform_factory(conf)
 
             spikes = cvh5['spikes'].value
@@ -83,10 +85,14 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
                 print run_id, [el_dist, amp, spikes]
                 raise
 
+        index_close_els = ru.get_index_close_els(cell_gid, input_type, stim_type, model_type, saved_data)
+        table = table.drop(index_close_els)
+        table.loc[table["vm_phase"] < 0, "vm_phase"] = table["vm_phase"] + 360
+
         filename = ru.get_table_filename(cell_gid, amp, trial)
         print 'Data collected. Writing to {}...'.format(filename)
         fpath = ru.get_table_dir(input_type,stim_type, model_type, filename)
-
+        print "writing to:" , fpath
         ru.write_table_h5(fpath, table, attrs={'has_vm_data': include_delta_vm,
                                                'vm_rest': vm_rest,
                                                'has_iclamp': include_iclamp,

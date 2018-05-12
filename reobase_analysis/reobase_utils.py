@@ -108,12 +108,13 @@ def format_freq(freq):
     """ Formatting of freq for naming. Idempotent. """
     return freq if type(freq) == str else "{0:.0f}".format(freq)
 
-def get_dir_root():
+def get_dir_root(saved_data):
     """ For dealing with different netweork locations on Mac/Linux """
     network_root = '/allen'
     if os.path.isdir('/Volumes'):
         network_root = '/Volumes'
-
+    if saved_data:
+        network_root ='/local2'
     return network_root
 
 def concat_path(*args):
@@ -125,16 +126,14 @@ def concat_path(*args):
         clean[0] = '/' + clean[0]
     return '/'.join(clean)
 
-def get_reobase_dir(*args):
-    network_root = get_dir_root()
+def get_reobase_dir(saved_data, *args):
+    network_root = get_dir_root(saved_data)
     return concat_path(network_root, 'aibs/mat/Fahimehb/Data_cube/reobase', *args)
 
-def get_saved_data_dir(*args):
-    return concat_path('/local2/Data_cube/reobase', *args)
 
-def get_output_dir(input_type, stim_type, model_type, cell_gid, *args):
+def get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data, *args):
     """ Get dir containing runs for given params """
-    reobase_dir = get_reobase_dir()
+    reobase_dir = get_reobase_dir(saved_data)
     return concat_path(reobase_dir, 'Run_folder/outputs/', input_type, stim_type, model_type, cell_gid, *args)
 
 def get_electrode_path(electrodes_dir, gid, el):
@@ -227,11 +226,19 @@ def get_sin_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, fre
 ### Tables ###
 
 def get_table_dir(input_type, stim_type, model_type, *args):
-    return get_reobase_dir('Run_folder/result_tables/', input_type, stim_type, model_type, *args)
+    # print concat_path('/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_tables/', input_type, stim_type, model_type, *args)
+    return concat_path('/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_tables/', input_type, stim_type, model_type, *args)
 
 def get_table_filename(cell_gid, amp,trial):
     return 'table_{}_amp{}_tr{}.h5'.format(cell_gid, format_amp(amp), trial)
 
+### Modulation_tables ###
+def get_analysis_dir(input_type, stim_type, model_type, *args):
+    # print concat_path('/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/result_tables/', input_type, stim_type, model_type, *args)
+    return concat_path('/allen/aibs/mat/Fahimehb/Data_cube/reobase/Run_folder/Analysis/result_modulation_tables/', input_type, stim_type, model_type, *args)
+
+def get_modulation_table_filename(cell_gid,trial):
+    return '{}_vm_amp_modulation_tr{}.csv'.format(cell_gid, trial)
 
 ## VMDs ###
 
@@ -463,14 +470,15 @@ def read_cell_rows(cell_gid, els, amps, stim_type , trial,
 
     return table
 
-def get_index_close_els(cell_gid, input_type, stim_type, model_type):
+def get_index_close_els(cell_gid, input_type, stim_type, model_type, saved_data):
     """Get list of bad electrodes for which the simulation was not finished"""
-    output_dir = get_output_dir(cell_gid=cell_gid,input_type=input_type, stim_type=stim_type,
-                               model_type=model_type)
+    output_dir = get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
+    # print output_dir
     index_list=[]
     for filename in os.listdir(output_dir):
         log_file= concat_path(output_dir, filename, "/log.txt")
-        if 'External electrode is too close' in open(log_file).read():
+        #if 'External electrode is too close' in open(log_file).read():
+        if not 'Simulation Duration' in open(log_file).read():
             el = int([x for x in filename.split('_') if x.startswith('el')][0][2:])
             ic_amp = int([x for x in filename.split('_') if x.startswith('icamp')][0][5:]) * 0.001 if "icamp" in filename else None
             fq = int([x for x in filename.split('_') if x.startswith('freq')][0][4:]) if "freq" in filename else None

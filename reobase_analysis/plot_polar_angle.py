@@ -4,6 +4,9 @@ import analysis as ra
 import numpy as np
 import pandas as pd
 from reobase_analysis.reobase_utils import StimType
+from scipy.optimize import leastsq
+import scipy.stats as stats
+
 
 SAVE = False
 
@@ -251,25 +254,25 @@ def plot(t, amp, col_name, nbins=14, save_name=None):
     #     plt.show()
 
 
-def XY(cell_gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, nbins=14, save_name=None):
-
-    t = r.read_cell_tables(cell_gid, inputs, input_type, stim_type, model_type, trial)
-    t['theta'], t['phi'] = ra.spherical_coords(t)
-
-    t = t[(t.distance == dist)] # exclude closest layer
-    n, bins = np.histogram(t.theta, bins=nbins)
-    categories = pd.cut(t['theta'], bins)
-    groups = t.groupby(categories)
-
-    X = []
-    Y = []
-
-    for interval, g in groups:
-        X = X + [interval.mid]
-        Y.append(g[col_name])
-
-    return np.array(X)/np.pi,  Y
-    # return np.array(X)/np.pi
+# def XY(cell_gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, nbins=14, save_name=None):
+#
+#     t = r.read_cell_tables(cell_gid, inputs, input_type, stim_type, model_type, trial)
+#     t['theta'], t['phi'] = ra.spherical_coords(t)
+#
+#     t = t[(t.distance == dist)] # exclude closest layer
+#     n, bins = np.histogram(t.theta, bins=nbins)
+#     categories = pd.cut(t['theta'], bins, include_lowest=True)
+#     groups = t.groupby(categories)
+#
+#     X = []
+#     Y = []
+#
+#     for interval, g in groups:
+#         X = X + [interval.mid]
+#         Y.append(g[col_name])
+#
+#     return np.array(X)/np.pi,  Y
+#     # return np.array(X)/np.pi
 
 
 def generate_theta(cell_gid, amp, input_type, stim_type, model_type, trial, *args, **kwargs):
@@ -302,114 +305,248 @@ print 'For an example try pol(313862022, "dc", "perisomatic") function'
 
 # default()
 
-def fit_sin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist):
-    from scipy.optimize import leastsq
-    import pylab as plt
+def XY_for_fitsin(gid, inputs, col_name, input_type, ic_amp, stim_type, model_type, trial, dist,freq=None):
 
-    tempX, tempY = XY(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist)
-    YY = []
-    XX = []
-    niter = 0
+    t = generate_theta(gid, inputs,input_type, stim_type, model_type, trial)
+    t.loc[t["vm_phase"] < 0, "vm_phase"] = t["vm_phase"] + 360
 
-    for y in tempY:
-        if ~np.isnan(np.mean(y)):
-            YY.append(y.mean())
-            XX.append(tempX[niter])
-        niter += 1
+    if freq is not None:
+        t = t[(t.distance == dist) & (t.fq == freq) & (t.ic_amp == ic_amp)]
+    else:
+        t = t[(t.distance == dist)]
 
-    guess_meanXX = np.mean(YY)
-    guess_stdXX = 3 * np.std(YY) / (2 ** 0.5)
-    guess_phaseXX = 0
-    XX = np.asarray(XX)
+    n, bins = np.histogram(t.theta, bins=14)
+    t['category'] = pd.cut(t['theta'], bins, include_lowest=True)
+    Y = t.groupby('category')[col_name].mean().reset_index()[col_name]
+    X = (bins[1:] + bins[:-1]) / 2
 
-    Y = [item for sublist in tempY for item in sublist]
+    df = pd.DataFrame({"X": X, "Y": Y})
+    df = df[np.isfinite(df['Y'])]
 
-    niter = 0
-    X = []
+    return df['X'], df['Y']
 
-    for y in tempY:
-        for item in y:
-            X.append(tempX[niter])
-        niter = niter + 1
+def fit_sin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq= None):
 
-    guess_mean = np.mean(Y)
-    guess_std = 3 * np.std(Y) / (2 ** 0.5)
+    # X, Y = XY_for_fitsin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq)
+
+    guess_mean = 0
+    guess_std = 0.002
     guess_phase = 0
-    X = np.asarray(X)
 
     data_first_guess = guess_std * np.sin(X + guess_phase) + guess_mean
     optimize_func = lambda x: x[0] * np.sin(X + x[1]) + x[2] - Y
-    est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase, guess_mean])[0]
-    data_fit = est_std * np.sin(X + est_phase) + est_mean
+    est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase,guess_mean])[0]
+    Y_fit = est_std * np.sin(X + est_phase) + est_mean
 
-    data_first_guessXX = guess_stdXX * np.sin(XX + guess_phaseXX) + guess_meanXX
-    optimize_funcXX = lambda x: x[0] * np.sin(XX + x[1]) + x[2] - YY
-    est_stdXX, est_phaseXX, est_meanXX = leastsq(optimize_funcXX, [guess_stdXX, guess_phaseXX,guess_meanXX])[0]
-    data_fitXX = est_stdXX * np.sin(XX + est_phaseXX) + est_meanXX
+    return X, Y, Y_fit , est_std, est_phase, est_mean
 
-    plt.plot(XX * 180, YY, 'o')
-    # plt.plot(XX * 180, data_fitXX, label='after fitting')
-    plt.plot(XX * 180, data_fitXX, label=model_type)
 
-    #     plt.plot(XX, np.repeat(data_fitXX.min(), np.arange(len(XX))), label='after fitting mean values')
-    plt.plot(X * 180, Y, '.')
+def get_modulation(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq= None):
 
-    # plt.plot(X, data_fit, label='after fitting')
-    plt.xlabel('$\Theta$ (degree)', fontsize = 15)
-    plt.ylabel(col_name, fontsize = 15)
-    plt.tick_params(labelsize=15)
-    plt.title("HETRO")
+    theta, data, data_fit, est_std, est_phase, est_mean = fit_sin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq)
+    mod1 = data_fit.max() - data_fit.min()
+    mod2 = (data_fit.max() - data_fit.min()) / np.abs(data_fit.min())
+    return mod1, mod2
+
+def check(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq= None):
+
+    theta, data, data_fit, est_std, est_phase, est_mean = fit_sin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq)
+    mod1 = data_fit.max() - data_fit.min()
+    mod2 = (data_fit.max() - data_fit.min()) / np.abs(data_fit.min())
+    return data_fit.min(), data_fit.max(), mod1, mod2
+
+def plot_fit_sin(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist, freq=None):
+
+    t = generate_theta(gid, inputs,input_type, stim_type, model_type, trial)
+    if freq is not None:
+        t = t[(t.distance == dist) & (t.fq == freq)]
+    else:
+        t=t[t.distance == dist]
+
+    n, bins = np.histogram(t.theta, bins=14)
+    t['category'] = pd.cut(t['theta'], bins, include_lowest=True)
+    Y = t.groupby('category')[col_name].mean().reset_index()[col_name]
+    X = (bins[1:] + bins[:-1]) / 2
+
+    df = pd.DataFrame({"X": X, "Y": Y})
+    df = df[np.isfinite(df['Y'])]
+
+    X = df['X']
+    Y = df['Y']
+
+    guess_mean = 0
+    guess_std = 0.002
+    guess_phase = 0
+
+    data_first_guess = guess_std * np.sin(X + guess_phase) + guess_mean
+    optimize_func = lambda x: x[0] * np.sin(X + x[1]) + x[2] - Y
+    est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase,guess_mean])[0]
+    Y_fit = est_std * np.sin(X + est_phase) + est_mean
+
+    theta = X
+    data = Y
+    data_fit = Y_fit
+    degree = theta *180 / np.pi
+    plt.scatter(t['theta']*180/np.pi, t[col_name], label='data')
+    plt.scatter(degree, data, marker='o', s=10, color='red',label='mean')
+    plt.plot(degree, data_fit, label='after fitting')
+    plt.xlabel("theta (degree)")
+    # plt.ylabel(colname)
     plt.legend()
-    # plt.show()
-    #     return np.abs(est_stdXX), est_phaseXX * 360  / (2*np.pi) , data_fitXX.min(), np.abs(est_stdXX)/data_fitXX.min()
-    # return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
-    return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+    plt.show()
 
-def get_modulation (gid, inputs, col_name, stim_type, model_type, trial, dist):
-    from scipy.optimize import leastsq
-    import pylab as plt
+    mod1 = data_fit.max() - data_fit.min()
+    mod2 = (data_fit.max() - data_fit.min()) / np.abs(data_fit.min())
 
-    tempX, tempY = XY(gid, inputs, col_name, stim_type, model_type, trial, dist)
-    YY = []
-    XX = []
-    niter = 0
+    return mod1, mod2
 
-    for y in tempY:
-        if ~np.isnan(np.mean(y)):
-            YY.append(y.mean())
-            XX.append(tempX[niter])
-        niter += 1
+def build_modulation_table(cell_id, inputs, col_name, input_type, stim_type, model_type, trial, d_list, fq_list):
 
-    guess_meanXX = np.mean(YY)
-    guess_stdXX = 3 * np.std(YY) / (2 ** 0.5)
-    guess_phaseXX = 0
-    XX = np.asarray(XX)
+    modulation_table = pd.DataFrame(columns=["gid", "amp", "distance", "fq", "mod1", "mod2"])
+    for amp in inputs:
+        for d in d_list:
+            for fq in fq_list:
+                print "now running for", cell_id, "  d:", d, "  fq:", fq
 
-    Y = [item for sublist in tempY for item in sublist]
+                mod1, mod2 = get_modulation(cell_id, inputs, col_name, input_type, stim_type, model_type, trial, d, fq)
+                modulation_table = modulation_table.append({"gid": int(cell_id),
+                                        "amp": amp,
+                                        "distance": d,
+                                        "fq": fq,
+                                        "mod1": mod1,
+                                        "mod2": mod2}, ignore_index=True)
+    analysis_dir = r.get_analysis_dir(input_type, stim_type, model_type)
+    modulation_output_filename = r.get_modulation_table_filename(cell_id, trial)
+    output_dir = analysis_dir + "/" + modulation_output_filename
+    modulation_table.to_csv(output_dir)
+    print "Resulting table is saved in Analysis folder too"
+    return modulation_table
 
-    niter = 0
-    X = []
+def ANOVA_test(modulation_table, gid_list1, gid_list2, mod_col, dist, fq, ic_amp):
 
-    for y in tempY:
-        for item in y:
-            X.append(tempX[niter])
-        niter = niter + 1
+    df1 = modulation_table.loc[modulation_table['gid'].isin(gid_list1)]
+    df2 = modulation_table.loc[modulation_table['gid'].isin(gid_list2)]
 
-    guess_mean = np.mean(Y)
-    guess_std = 3 * np.std(Y) / (2 ** 0.5)
-    guess_phase = 0
-    X = np.asarray(X)
+    l1 = df1[(df1["distance"] == dist) & (df1["fq"] == fq) & (df1["ic_amp"] == ic_amp) ][mod_col]
+    l2 = df2[(df2["distance"] == dist) & (df2["fq"] == fq) & (df2["ic_amp"] == ic_amp) ][mod_col]
 
-    data_first_guess = guess_std * np.sin(X + guess_phase) + guess_mean
-    optimize_func = lambda x: x[0] * np.sin(X + x[1]) + x[2] - Y
-    est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase, guess_mean])[0]
-    data_fit = est_std * np.sin(X + est_phase) + est_mean
+    print "mean and std of first group:", np.mean(l1), np.std(l1)
+    print "mean and std of second group:", np.mean(l2), np.std(l2)
 
-    data_first_guessXX = guess_stdXX * np.sin(XX + guess_phaseXX) + guess_meanXX
-    optimize_funcXX = lambda x: x[0] * np.sin(XX + x[1]) + x[2] - YY
-    est_stdXX, est_phaseXX, est_meanXX = leastsq(optimize_funcXX, [guess_stdXX, guess_phaseXX, guess_meanXX])[0]
-    data_fitXX = est_stdXX * np.sin(XX + est_phaseXX) + est_meanXX
+    return stats.f_oneway(l1,l2).pvalue
 
-    return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
 
-    # return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+
+
+
+# def fit_sin_old(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist):
+#     import pylab as plt
+#
+#     tempX, tempY = XY(gid, inputs, col_name, input_type, stim_type, model_type, trial, dist)
+#     YY = []
+#     XX = []
+#     niter = 0
+#
+#     for y in tempY:
+#         if ~np.isnan(np.mean(y)):
+#             YY.append(y.mean())
+#             XX.append(tempX[niter])
+#         niter += 1
+#
+#     guess_meanXX = np.mean(YY)
+#     guess_stdXX = 3 * np.std(YY) / (2 ** 0.5)
+#     guess_phaseXX = 0
+#     XX = np.asarray(XX)
+#
+#     Y = [item for sublist in tempY for item in sublist]
+#
+#     niter = 0
+#     X = []
+#
+#     for y in tempY:
+#         for item in y:
+#             X.append(tempX[niter])
+#         niter = niter + 1
+#
+#     guess_mean = np.mean(Y)
+#     guess_std = 3 * np.std(Y) / (2 ** 0.5)
+#     guess_phase = 0
+#     X = np.asarray(X)
+#
+#     data_first_guess = guess_std * np.sin(X + guess_phase) + guess_mean
+#     optimize_func = lambda x: x[0] * np.sin(X + x[1]) + x[2] - Y
+#     est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase, guess_mean])[0]
+#     data_fit = est_std * np.sin(X + est_phase) + est_mean
+#
+#     data_first_guessXX = guess_stdXX * np.sin(XX + guess_phaseXX) + guess_meanXX
+#     optimize_funcXX = lambda x: x[0] * np.sin(XX + x[1]) + x[2] - YY
+#     est_stdXX, est_phaseXX, est_meanXX = leastsq(optimize_funcXX, [guess_stdXX, guess_phaseXX,guess_meanXX])[0]
+#     data_fitXX = est_stdXX * np.sin(XX + est_phaseXX) + est_meanXX
+#
+#     plt.plot(XX * 180, YY, 'o')
+#     # plt.plot(XX * 180, data_fitXX, label='after fitting')
+#     plt.plot(XX * 180, data_fitXX, label=model_type)
+#
+#     #     plt.plot(XX, np.repeat(data_fitXX.min(), np.arange(len(XX))), label='after fitting mean values')
+#     plt.plot(X * 180, Y, '.')
+#
+#     # plt.plot(X, data_fit, label='after fitting')
+#     plt.xlabel('$\Theta$ (degree)', fontsize = 15)
+#     plt.ylabel(col_name, fontsize = 15)
+#     plt.tick_params(labelsize=15)
+#     plt.title("HETRO")
+#     plt.legend()
+#     plt.show()
+#     #     return np.abs(est_stdXX), est_phaseXX * 360  / (2*np.pi) , data_fitXX.min(), np.abs(est_stdXX)/data_fitXX.min()
+#     # return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+#     # return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+#     return X,Y, XX, YY, data_fitXX
+
+# def get_modulation (gid, inputs, col_name, stim_type, model_type, trial, dist):
+#     from scipy.optimize import leastsq
+#     import pylab as plt
+#
+#     tempX, tempY = XY(gid, inputs, col_name, stim_type, model_type, trial, dist)
+#     YY = []
+#     XX = []
+#     niter = 0
+#
+#     for y in tempY:
+#         if ~np.isnan(np.mean(y)):
+#             YY.append(y.mean())
+#             XX.append(tempX[niter])
+#         niter += 1
+#
+#     guess_meanXX = np.mean(YY)
+#     guess_stdXX = 3 * np.std(YY) / (2 ** 0.5)
+#     guess_phaseXX = 0
+#     XX = np.asarray(XX)
+#
+#     Y = [item for sublist in tempY for item in sublist]
+#
+#     niter = 0
+#     X = []
+#
+#     for y in tempY:
+#         for item in y:
+#             X.append(tempX[niter])
+#         niter = niter + 1
+#
+#     guess_mean = np.mean(Y)
+#     guess_std = 3 * np.std(Y) / (2 ** 0.5)
+#     guess_phase = 0
+#     X = np.asarray(X)
+#
+#     data_first_guess = guess_std * np.sin(X + guess_phase) + guess_mean
+#     optimize_func = lambda x: x[0] * np.sin(X + x[1]) + x[2] - Y
+#     est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase, guess_mean])[0]
+#     data_fit = est_std * np.sin(X + est_phase) + est_mean
+#
+#     data_first_guessXX = guess_stdXX * np.sin(XX + guess_phaseXX) + guess_meanXX
+#     optimize_funcXX = lambda x: x[0] * np.sin(XX + x[1]) + x[2] - YY
+#     est_stdXX, est_phaseXX, est_meanXX = leastsq(optimize_funcXX, [guess_stdXX, guess_phaseXX, guess_meanXX])[0]
+#     data_fitXX = est_stdXX * np.sin(XX + est_phaseXX) + est_meanXX
+#
+#     return data_fitXX.min(), data_fitXX.max(), data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
+#
+#     # return data_fitXX.max()-data_fitXX.min(), (data_fitXX.max()-data_fitXX.min()) / np.abs(data_fitXX.min())
