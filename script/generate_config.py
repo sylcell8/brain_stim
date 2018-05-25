@@ -25,12 +25,12 @@ batch_config = {
     "el_range": [0, sargs.number_el],
     "cell_gid": sargs.cell_gid,
     "amps": [-0.0002],
-    "freqs": [1,8,30],
+    "freqs": [1, 8, 30],
     "trial": sargs.trial,
     "input_type": str(InputType.EXTRASTIM_INTRASTIM),
     "stim_type": str(StimType.SIN_DC), # output directory name -- differs from waveform type, b/c includes external inputs
     "model_type": str(ModelType.PERISOMATIC),
-    "ic_amps": [0.2],
+    "ic_amps": [0.07],
 }
 
 print sargs

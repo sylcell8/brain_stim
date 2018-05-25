@@ -306,8 +306,10 @@ iclamp_cols = ['ic_amp']
 sin_cols=['fq']
 vm_phase_analysis_cols = ['vm_amp', 'vm_phase']
 vext_phase_analysis_cols = ['vext_amp', 'vext_phase']
+spike_phase_analysis_cols = ['spike_threshold_t', 'spike_phase']
 
-def resolve_additional_cols(include_delta_vm, include_sin, include_iclamp, include_vm_phase_analysis, include_vext_phase_analysis):
+def resolve_additional_cols(include_delta_vm, include_sin, include_iclamp, include_vm_phase_analysis,
+                            include_vext_phase_analysis, include_spike_phase):
     """ Find all the additional columns for the table"""
     cols = []
 
@@ -321,6 +323,8 @@ def resolve_additional_cols(include_delta_vm, include_sin, include_iclamp, inclu
         cols= cols + vm_phase_analysis_cols
     if include_vext_phase_analysis:
         cols = cols + vext_phase_analysis_cols
+    if include_spike_phase:
+        cols = cols + spike_phase_analysis_cols
 
     return cols
 
@@ -375,35 +379,57 @@ def read_table_h5(fpath):
         extra_cols = []
         if 'has_vm_data' in f5.attrs and f5.attrs['has_vm_data']:
             extra_cols = extra_cols + vm_cols
+
         if 'has_sin' in f5.attrs and f5.attrs['has_sin']:
-
             extra_cols = extra_cols + sin_cols
+
         if 'has_iclamp' in f5.attrs and f5.attrs['has_iclamp']:
-
             extra_cols = extra_cols + iclamp_cols
+
         if 'has_vm_phase_analysis' in f5.attrs and f5.attrs['has_vm_phase_analysis']:
-
             extra_cols = extra_cols + vm_phase_analysis_cols
-        if 'has_vext_phase_analysis' in f5.attrs and f5.attrs['has_vext_phase_analysis']:
 
+        if 'has_vext_phase_analysis' in f5.attrs and f5.attrs['has_vext_phase_analysis']:
             extra_cols = extra_cols + vext_phase_analysis_cols
 
-        # extra_cols = vm_cols + sin_cols  if 'has_vm_data' in f5.attrs and f5.attrs['has_vm_data'] else []
-        # extra_cols = vm_cols + iclamp_cols + sin_cols if 'has_iclamp' in f5.attrs and f5.attrs['has_iclamp'] else []
+        if 'has_spike_phase_analysis' in f5.attrs and f5.attrs['has_spike_phase_analysis']:
+            extra_cols = extra_cols + spike_phase_analysis_cols
+
 
         table = build_df(extra_cols)
-        # table = build_df(extra_cols)
+        un_touched_data_cols = (dc_cols + extra_cols)
 
         ids = f5['ids'].value
         spike_data = f5['spikes']
 
+        if set(['spike_threshold_t', 'spike_phase']).issubset(un_touched_data_cols):
+            spike_threshold_t_data = f5['spike_threshold_t']
+            spike_phase_data = f5['spike_phase']
+
         for i, rid in enumerate(ids):  # i is key for f5 dsets, rid is key for spikes & df
             data_cols = (dc_cols + extra_cols)
             spike_index = data_cols.index('spikes')
+
+            if set(['spike_threshold_t','spike_phase']).issubset(data_cols):
+                spike_threshold_t_index = data_cols.index('spike_threshold_t')
+                spike_phase_index = data_cols.index('spike_phase')
+
+
             data_cols.pop(spike_index)
+            if set(['spike_threshold_t', 'spike_phase']).issubset(data_cols):
+                new_spike_threshold_t_index = data_cols.index('spike_threshold_t')
+                data_cols.pop(new_spike_threshold_t_index)
+                new_spike_phase_index = data_cols.index('spike_phase')
+                data_cols.pop(new_spike_phase_index)
+
+
             data = [f5[c][i] for c in data_cols]
             # place spikes in correct position
             data.insert(spike_index, spike_data[rid].value)
+            if set(['spike_threshold_t','spike_phase']).issubset(un_touched_data_cols):
+                data.insert(spike_threshold_t_index, spike_threshold_t_data[rid].value)
+                data.insert(spike_phase_index, spike_phase_data[rid].value)
+
             table.loc[rid] = data
 
     return table
@@ -415,13 +441,27 @@ def write_table_h5(fpath, df, attrs=None):
     with h5.File(fpath, 'w') as f5:
         f5.create_dataset('ids', data=map(str, df.index))
         for col in df.columns:
-            if col != 'spikes': # cuz it will explode if it is type 'object'
+            if col not in ['spikes', 'spike_threshold_t', 'spike_phase']: # cuz it will explode if it is type 'object'
                 f5.create_dataset(col, data=df[col])
+
         spike_grp = f5.create_group('spikes')
         for (rid, spike_times) in df.spikes.iteritems():
             spike_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=spike_times)
+
+
+        if set(['spike_threshold_t', 'spike_phase']).issubset(df.columns):
+            spike_threshold_t_grp = f5.create_group('spike_threshold_t')
+            spike_phase_grp = f5.create_group('spike_phase')
+
+            for (rid, s_t_t) in df.spike_threshold_t.iteritems():
+                spike_threshold_t_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=s_t_t)
+        #
+            for (rid, s_p) in df.spike_phase.iteritems():
+                spike_phase_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=s_p)
+
         if attrs is not None:
             for k,v in attrs.iteritems():
+                # print k, v
                 f5.attrs[k] = v
 
 
@@ -435,7 +475,7 @@ def read_cell_tables(cell_gid, amp_range, input_type,stim_type, model_type, tria
     t = build_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])
     t['num_spikes'] = t.apply(lambda row: len(row['spikes']), axis=1)
-    t['num_true_spikes'] = np.where(t['num_spikes'] == 1, 0, t['num_spikes'])
+    # t['num_true_spikes'] = np.where(t['num_spikes'] == 1, 0, t['num_spikes'])
 
     # print "Done"
     return t

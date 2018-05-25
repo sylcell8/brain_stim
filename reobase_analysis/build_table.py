@@ -1,11 +1,15 @@
 import glob
 import numpy as np
+import pandas as pd
 import itertools
+import allensdk
 import reobase_analysis.reobase_utils as ru
 import reobase_analysis.sin_utils as su
+from scipy.signal import hilbert, chirp
 from reobase_analysis.reobase_utils import StimType, ModelType, InputType
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 from isee_engine.bionet.stimxwaveform import iclamp_waveform_factory
+from allensdk.ephys.ephys_extractor import EphysSweepFeatureExtractor
 #import cProfile, pstats, io
 #pr = cProfile.Profile()
 #pr.enable()
@@ -21,14 +25,17 @@ If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 
 def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, include_delta_vm = True,
                  include_sin = True, include_vm_phase_analysis=True, include_vext_phase_analysis=True,
-                 saved_data= False):
+                 include_spike_phase = True, saved_data= False):
 
     cell_csv_pattern = '/*_cel[ls]*csv'
     cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
     include_iclamp = input_type == "extrastim_intrastim"
     additional_cols = ru.resolve_additional_cols(include_delta_vm, include_sin, include_iclamp,
-                                                 include_vm_phase_analysis, include_vext_phase_analysis)
+                                                 include_vm_phase_analysis, include_vext_phase_analysis,
+                                                 include_spike_phase)
     print additional_cols
+    print "Iclamp and stimx have the same delay and dur"
+
     for amp in inputs:
         print 'Build data table for ex_amp = {}...'.format(amp)
         all_dir_name = ru.resolve_output_aggregates(include_delta_vm, include_sin, include_iclamp, amp, trial)
@@ -37,6 +44,7 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
         vm_rest = np.NaN
 
         for out_dir in glob.iglob(amp_output):
+            # print out_dir
             dir_name = out_dir.split('/')[-1]
             el = int([x for x in dir_name.split('_') if x.startswith('el')][0][2:])
             fq = int([x for x in dir_name.split('_') if x.startswith('freq')][0][4:])
@@ -48,7 +56,17 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
 
             conf = ru.get_json_from_file(config_path)
             electrodes_dir = ru.get_dir_root(saved_data) + '/' + '/'.join(conf['output']['electrodes_dir'].split('/')[2:])
+
             in_waveform = iclamp_waveform_factory(conf)
+            ex_waveform = stimx_waveform_factory(conf)
+            ex_delay = ex_waveform.delay
+            ex_dur = ex_waveform.duration
+            if stim_type =="sin":
+                in_delay = None
+                in_dur = None
+            elif stim_type == "sin_dc":
+                in_delay = in_waveform.delay
+                in_dur = in_waveform.duration
 
             spikes = cvh5['spikes'].value
             el_xyz = ru.get_electrode_xyz(ru.get_electrode_path(electrodes_dir, cell_gid, el)).flatten()
@@ -57,10 +75,16 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
             el_dist = round(np.linalg.norm(el_xyz - cell_xyz))
 
             try:
-                vm_data = extract_vm_data( cvh5, in_waveform.delay, in_waveform.duration) if include_delta_vm else []
+                vm_data = extract_vm_data( cvh5, stim_type, ex_delay, ex_dur, iclamp_delay = in_delay, iclamp_dur = in_dur) if include_delta_vm else []
                 vm_rest = vm_data.pop(0)
-                vm_phase_analysis_data = extract_v_phase_analysis("vm",cvh5, in_waveform.delay, in_waveform.duration, fq)
-                vext_phase_analysis_data = extract_v_phase_analysis("vext",cvh5, in_waveform.delay, in_waveform.duration, fq)
+                vm_phase_analysis_data = extract_v_phase_analysis("vm",cvh5, ex_delay, ex_dur, fq)
+                vext_phase_analysis_data = extract_v_phase_analysis("vext",cvh5, ex_delay, ex_dur, fq)
+
+                spike_threshold_data = extract_spike_threshold_t(cvh5)
+
+                spike_phase_data = extract_spike_phase("vext", cvh5, ex_delay, ex_dur)
+
+                spike_threshold_phase_data = [spike_threshold_data] + [spike_phase_data]
 
                 data = [[trial, el], el_xyz, [el_dist, amp, spikes]]
 
@@ -80,6 +104,10 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
                 if include_vext_phase_analysis:
                     data = data + [vext_phase_analysis_data]
 
+                if include_spike_phase:
+                    data = data + [spike_threshold_phase_data]
+                # print data
+
                 table.loc[run_id] = list(itertools.chain.from_iterable(data))
             except:
                 print run_id, [el_dist, amp, spikes]
@@ -98,41 +126,133 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
                                                'has_iclamp': include_iclamp,
                                                'has_sin': include_sin,
                                                'has_vm_phase_analysis':include_vm_phase_analysis,
-                                               'has_vext_phase_analysis': include_vext_phase_analysis})
+                                               'has_vext_phase_analysis': include_vext_phase_analysis,
+                                               'has_spike_phase_analysis': include_spike_phase})
         print 'Done.'
 
-def extract_v_phase_analysis(var_name ,cvh5, delay, dur, freq):
 
+
+def extract_spike_threshold_t(cvh5):
+    'We use Allensdk spike feature extractor to find the spike threshold time'
+    voltage = cvh5['vm'].value
+    dt = cvh5.attrs['dt']
+    tstop = cvh5.attrs['tstop']
+    time = np.arange(0,tstop,dt)
+    time = time / 1000.
+    spikes = cvh5['spikes'].value
+
+    if len(spikes) < 1:
+        spike_threshold_t = []
+    else:
+
+        sweep = EphysSweepFeatureExtractor(t=time, v=voltage, start=0, end=time[-1])
+        sweep.process_spikes()
+        all_spike_features = sweep.spike_feature_keys()
+
+        features_dict = {}
+        for j in range(0, len(all_spike_features)):
+            features_dict[all_spike_features[j]] = sweep.spike_feature(all_spike_features[j])
+
+        spike_threshold_t = features_dict['threshold_t']*1000.
+
+    return spike_threshold_t
+
+def hilbert_transform(varname, cvh5, ex_delay, ex_dur):
+    'We compute the hilbert transform for the whole period when extra_stim is applied. After making the table\
+    then we can cut the first and last 2s. But the table is build for the whole period of ex_stim applied'
+    dt = cvh5.attrs['dt']
+    var = cvh5[varname].value
+    t_start = int((ex_delay) / dt)
+    t_end = int((ex_delay + ex_dur) / dt)
+    var = var[t_start:t_end]
+    n_points = int(1. / (dt * (0.001))) #Number of data points in 1second
+
+    analytic_var = hilbert(var)
+    amplitude_envelope_var = np.abs(analytic_var)
+    instantaneous_phase_var = np.unwrap(np.angle(analytic_var))
+    phase_var = [(x / (2.0 * np.pi) - int(x / (2.0 * np.pi))) * 2.0 * np.pi - np.pi for x in instantaneous_phase_var]
+    instantaneous_frequency_var = (np.diff(instantaneous_phase_var) / (2.0 * np.pi) * n_points)
+
+    return phase_var, amplitude_envelope_var, instantaneous_frequency_var
+
+
+def extract_spike_phase(varname, cvh5, ex_delay, ex_dur):
+    'We compute the spike phase for all the spikes from the beggining to end. After we build the table, then we can decide\
+    which time window we keep for analyis. But as of now, we copute the spike phase for all the spikes'
+    dt = cvh5.attrs['dt']
+    spikes = cvh5['spikes'].value
+
+    if len(spikes) < 1:
+        spike_phase = []
+    else:
+        t_start = ex_delay
+        t_end = ex_delay + ex_dur
+        time = np.arange(t_start, t_end, dt)
+
+        spike_threshold_time = extract_spike_threshold_t(cvh5)
+        phase_var, amplitude_envelope_var, instantaneous_frequency_var = hilbert_transform(varname, cvh5, ex_delay, ex_dur)
+
+        df = pd.DataFrame(columns=["spike_phase", 'time'])
+        df['spike_phase'] = phase_var
+        df["time"] = time
+
+        ndx = []
+        for t in spike_threshold_time:
+            ndx = ndx + (df[(df['time'] > (t - 0.000001)) & (df['time'] < (t + 0.000001))].index.tolist())
+
+        spike_phase = [df.loc[index]['spike_phase'] for index in ndx]
+
+    return np.asarray(spike_phase)
+
+
+
+def extract_v_phase_analysis(var_name ,cvh5, ex_delay, ex_dur, freq):
+    'This is subthreshold only analyis. When the cell is spiking this value is equal to NaN\
+    We cut the first 4s and the final 2s for fitting the sinusoid'
     spikes = cvh5['spikes'].value
     if len(spikes) < 1:
-        var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, delay, dur, freq)
+        var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, ex_delay, ex_dur, freq)
     else:
         var_amp = np.NaN
         var_phase = np.NaN
 
     if var_name=="vext":
-        var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, delay, dur, freq)
+        var_amp, var_phase, var_mean = su.fit_sin_h5(var_name, cvh5, ex_delay, ex_dur, freq)
 
     # print var_amp, var_phase, var_mean
     return [var_amp, var_phase]
 
 
-def extract_vm_data(cvh5, delay, dur):
+def extract_vm_data(cvh5, stim_type, ex_delay, ex_dur, **kwargs):
+    'This is a subthreshold feature only and when the cell is spiking, this value is equal to NaN\
+    we cut the first 1s before the extracellular stim. and we copmute the v_rest as the final 500ms before extra_stim is applied\
+    delta_vm is NaN is the cell is spiking, to compute the delta_vm for when the cell is not spiking if there is Iclamp\
+    then we compute it 1s after Iclamp is injected. if there is no iclamp, then we compute delta_vm 1s after extra_stim is applied.'
     dt = cvh5.attrs['dt']
     vm = cvh5['vm'].value
     spikes = cvh5['spikes'].value
     get_step = lambda x: int(x / dt)
 
-    vm_rest = vm[get_step(delay - 500):get_step(delay - 5)].mean()
+    vm_rest = vm[get_step(ex_delay - 500):get_step(ex_delay - 5)].mean()
 
-    if len(spikes) < 1: # ensure subthreshold or edge case
-        vm_stim = vm[get_step(delay + 1000):get_step(delay + dur-5)].mean()
-        if (dur) < 2000:
-            print "ERROR in calculating vm_stim"
+    if len(spikes) < 1:  # ensure subthreshold or edge case
+        if (stim_type == "sin"):
+            vm_stim = vm[get_step(ex_delay + 1000):get_step(ex_delay + ex_dur - 5)].mean()
+            if (ex_dur) < 2000:
+                print "ERROR1 in calculating vm_stim"
+
+        elif stim_type == "sin_dc":
+            in_delay = kwargs['iclamp_delay']
+            in_dur = kwargs['iclamp_dur']
+            vm_stim = vm[get_step(in_delay + 1000):get_step(in_delay + in_dur - 5)].mean()
+            if (in_dur) < 2000:
+                print "ERROR2 in calculating vm_stim"
+        else:
+            print "This STIMP_TYPE is not defined"
     else:
         vm_stim = np.NaN
 
-    return [vm_rest,  vm_stim, (vm_stim - vm_rest)]
+    return [vm_rest, vm_stim, (vm_stim - vm_rest)]
 
 
 def build_dc(cell_gid, ex_inputs, input_type, stim_type, model_type , trial):

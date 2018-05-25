@@ -213,8 +213,8 @@ def plot_vm(output, ax=None, **kwargs):
     # plt.show()
 
 def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp=None,  twin=None, ax=None):
-
-    print "try: plot_cell_vm(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial, twin=None, ax=None)"
+    # print     var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp
+    # print "try: plot_cell_vm(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial, twin=None, ax=None)"
     output_dir = get_output_dir(input_type=input_type, stim_type=stim_type, model_type=model_type, cell_gid=cell_id, saved_data = saved_data)
     output_file = get_dir_name(el=el, amp=amp, freq=freq, ic_amp=ic_amp, trial=trial)
     out_dir = concat_path(output_dir, output_file)
