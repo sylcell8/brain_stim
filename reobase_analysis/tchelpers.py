@@ -212,6 +212,34 @@ def plot_vm(output, ax=None, **kwargs):
     return ax
     # plt.show()
 
+def plot_f_i(output, currents, stim_time, ax=None, cell=None, size=(13, 7), **kwargs):
+    # with open(config, 'r') as fp:
+    #     config_data = json.load(fp)
+
+    # stim_time = config_data['extracellular_stimelectrode']['waveform']['dur']
+
+    if not ax:  
+        plt.figure(figsize=size)
+        ax = plt.subplot(111)
+
+    for current in currents:
+        cvfiles = get_cv_files_f_i(output, current, [cell]) if cell is not None else get_cv_files_f_i(output, current)
+
+        for i, f in enumerate(cvfiles):
+            plot_args = {}
+            plot_args['label'] = 'cell_' + str(i) if 'label' not in kwargs else kwargs['label']
+            plot_args['c'] = kwargs['c'] if 'c' in kwargs else None
+            spikes = f['spikes'].value
+            freq = len(spikes) / stim_time
+            ax.scatter(current*10**-6, freq, color='black', **plot_args)
+
+    # ax.set_ylim([0, 0.002])
+    ax.set_xlim([0, max(currents)*10**-6])
+    ax.set_xlabel("Amplitude (mA)")
+    ax.set_ylabel("Frequency of Spikes (1/ms)")
+    return ax
+        
+
 def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp=None,  twin=None, ax=None):
     # print     var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp
     # print "try: plot_cell_vm(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial, twin=None, ax=None)"

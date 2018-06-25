@@ -92,7 +92,7 @@ def set_config(conf_data, el, cell_gid, run_folder, extra_waveform_props, stim_t
     conf_data["manifest"]["$STIM_DIR"]   = concat_path("$BASE_DIR/stimulation", cell_gid)
     # single cell definition and per-cell connection functions
     conf_data["internal"]["cells"]     = "$NETWORK_DIR/{}_cell.csv".format(cell_gid)
-    conf_data["internal"]["con_types"] = "$NETWORK_DIR/{}_func.csv".format(cell_gid)
+    conf_data["internal"]["con_types"] = "$NETWORK_DIR/func.csv".format(cell_gid)
 
     return conf_data
 

@@ -268,6 +268,16 @@ def get_cv_files(output, cells=None):
 
     return files
 
+def get_cv_files_f_i(output, current, cells=None):
+    cv_dir = concat_path(output, 'el0000_amp{}_tr0'.format(current), 'cellvars')
+
+    if cells is not None:
+        files = map(lambda c: h5.File(concat_path(cv_dir, str(c)) + '.h5', 'r'), cells)
+    else:
+        files = [h5.File(f) for f in glob.glob(cv_dir + "/*.h5")]
+
+    return files
+
 def get_json_from_file(path):
     with open(path, 'r') as f:
         return json.load(f)
