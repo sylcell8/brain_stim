@@ -115,7 +115,7 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
                 print run_id, [el_dist, amp, spikes]
                 raise
 
-        index_close_els = ru.get_index_close_els(cell_gid, input_type, stim_type, model_type, saved_data)
+        index_close_els = ru.get_index_close_els(cell_gid, input_type, stim_type, model_type, trial, saved_data)
         table = table.drop(index_close_els)
         table.loc[table['vm_phase'] < 0, 'vm_phase'] = table['vm_phase'] + 360
         # table.loc[table["vext_phase"] < 0, "vext_phase"] = table["vext_phase"] + 360

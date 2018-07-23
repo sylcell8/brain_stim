@@ -529,20 +529,21 @@ def read_cell_rows(cell_gid, els, amps, stim_type, trial,
 
     return table
 
-def get_index_close_els(cell_gid, input_type, stim_type, model_type, saved_data):
+def get_index_close_els(cell_gid, input_type, stim_type, model_type, trial, saved_data):
     """Get list of bad electrodes for which the simulation was not finished"""
     output_dir = get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
     # print output_dir
     index_list=[]
     for filename in os.listdir(output_dir):
-        log_file= concat_path(output_dir, filename, "/log.txt")
-        #if 'External electrode is too close' in open(log_file).read():
-        if not 'Simulation Duration' in open(log_file).read():
-            el = int([x for x in filename.split('_') if x.startswith('el')][0][2:])
-            ic_amp = int([x for x in filename.split('_') if x.startswith('icamp')][0][5:]) * 0.001 if "icamp" in filename else None
-            fq = int([x for x in filename.split('_') if x.startswith('freq')][0][4:]) if "freq" in filename else None
-            amp = int([x for x in filename.split('_') if x.startswith('amp')][0][3:]) * 0.000001
-            index_list.append(resolve_run_id(gid=cell_gid, electrode=el, amp=amp, freq=fq, ic_amp=ic_amp))
+        if ("tr" + str(trial)) in filename: 
+            log_file= concat_path(output_dir, filename, "/log.txt")
+                #if 'External electrode is too close' in open(log_file).read():
+            if not 'Simulation Duration' in open(log_file).read():
+                el = int([x for x in filename.split('_') if x.startswith('el')][0][2:])
+                ic_amp = int([x for x in filename.split('_') if x.startswith('icamp')][0][5:]) * 0.001 if "icamp" in filename else None
+                fq = int([x for x in filename.split('_') if x.startswith('freq')][0][4:]) if "freq" in filename else None
+                amp = int([x for x in filename.split('_') if x.startswith('amp')][0][3:]) * 0.000001
+                index_list.append(resolve_run_id(gid=cell_gid, electrode=el, amp=amp, freq=fq, ic_amp=ic_amp))
     return index_list
 
 #############################################
