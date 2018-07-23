@@ -19,7 +19,7 @@ parser.add_argument("model_type", help="biophysical model, e.g. 'perisomatic', '
 parser.add_argument("input_type", help="extracellular and intracellular stim, e.g. 'extrastim', 'extrastim_intrastim'")
 
 # optional
-parser.add_argument("-i", "--inputs", help="input values. may provide many. may use normal or display form for values, e.g. -0.06 == 60. Default is 10,20,...,100", default=default_inputs,nargs='+', type=float)
+parser.add_argument("-i", "--inputs", help="input values. may provide many. may use normal or display form for values, e.g. -0.06 == 60. Default is 10,20,...,100", default=200, nargs='+', type=float)
 parser.add_argument("-t", "--trial", help="trial number for output folders, default 0", type=int, default=0)
 sargs = parser.parse_args()
 
@@ -42,4 +42,4 @@ if sargs.model_type not in [e.value for e in ModelType]:
     raise ValueError('Invalid model type provided (be sure type has been added to ModelType class)')
 
 # Run it!
-build_dc(sargs.cell_gid, inputs, sargs.input_type, sargs.stim_type, sargs.model_type, sargs.trial)
+build_sin_dc(sargs.cell_gid, sargs.input_type, sargs.stim_type, sargs.model_type, inputs, sargs.trial)

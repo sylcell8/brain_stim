@@ -6,7 +6,6 @@ import reobase_analysis.reobase_utils as ru
 from matplotlib.mlab import griddata
 import h5py
 
-
 def get_grouped_dic(cell_list, input_type, stim_type, model_type, amp_range, trial, groupby_cols, agg_cols):
     data = {}
     for cell_id in cell_list:
@@ -17,6 +16,8 @@ def get_grouped_dic(cell_list, input_type, stim_type, model_type, amp_range, tri
         # table = table.drop(index_close_els)
         print "Turned Vm_phase to vm_phase +360"
         table.loc[table["vm_phase"] < 0, "vm_phase"] = table["vm_phase"] + 360
+        print "Turned Vext_phase to vext_phase -360"
+        table.loc[(table["vext_phase"] < 360) & (table['vext_phase'] > 359), "vext_phase"] = table["vext_phase"] - 360
 
         data[cell_id] = table.groupby(groupby_cols)[agg_cols].mean().reset_index()
     return data
@@ -29,7 +30,6 @@ def get_merged_table(dic, merge_cols):
 
 
 def get_agg_merged_colnames(merged_table, var_name):
-
     var_agg_merged_colname = np.unique([col for col in merged_table.columns if var_name in col]).tolist()
     return var_agg_merged_colname
 
@@ -61,14 +61,80 @@ def get_mesh_X_Y_Z_Z1(merged_table, xcol, zcol, z1col, ycol="distance", error=Fa
         z1 = get_stdcol_3d_colorbar(merged_table, z1col)
 
     y = merged_table["distance"].as_matrix()
-
+    
     xi = np.linspace(np.min(x), np.max(x))
     yi = np.linspace(np.min(y), np.max(y))
 
     X, Y = np.meshgrid(xi, yi)
     Z = griddata(x, y, z, xi, yi, interp='linear')
     Z1 = griddata(x, y, z1, xi, yi, interp='linear')
-    return X, Y, Z, Z1
+    return X, Y, Z, Z1, x, y, z, z1
+
+
+def plot_3d_colorbar(X, Y, Z, Z1, x_mean, y_mean, z_mean, z1_mean, cbar_min, cbar_max, 
+                     figsize=(18,14), ax=None):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib.mlab import griddata
+    import numpy as np
+    import matplotlib
+    import pandas as pd
+    fig = plt.figure(figsize=figsize)
+    if not ax:
+        ax = fig.gca(projection='3d')
+
+    ax.tick_params(axis='x', which='major', pad=5)
+    ax.tick_params(axis='y', which='major', pad=5)
+    ax.tick_params(axis='z', which='major', pad=20)
+
+    norm = matplotlib.colors.Normalize(vmin=cbar_min,vmax = cbar_max)
+
+    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
+                       linewidth=1, antialiased=True)
+    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
+                       linewidth=1, antialiased=True)
+
+    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
+    m.set_array([])
+    ax.tick_params(labelsize=35)
+    plt.gca().invert_yaxis()
+    return ax
+
+
+def plot_3d_colorbar_mean_mean_scatter(X, Y, Z, Z1, x_mean, y_mean, z_mean, z1_mean, cbar_min, cbar_max, 
+                     figsize=(18,14), ax=None):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib.mlab import griddata
+    import numpy as np
+    import matplotlib
+    import pandas as pd
+    fig = plt.figure(figsize=figsize)
+    if not ax:
+        ax = fig.gca(projection='3d')
+
+    ax.tick_params(axis='x', which='major', pad=5)
+    ax.tick_params(axis='y', which='major', pad=5)
+    ax.tick_params(axis='z', which='major', pad=20)
+
+    norm = matplotlib.colors.Normalize(vmin=cbar_min,vmax = cbar_max)
+
+    # Scatter
+    ax.scatter(x_mean, y_mean, z_mean, cmap=plt.cm.jet(norm(Z)), s=50)
+    ax.scatter(x_mean, y_mean, z1_mean, cmap=plt.cm.jet(norm(Z)), s=50)
+
+    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
+                       linewidth=1, antialiased=True, alpha=0.1)
+    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
+                       linewidth=1, antialiased=True, alpha=0.1)
+
+    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
+    m.set_array([])
+    ax.tick_params(labelsize=35)
+    plt.gca().invert_yaxis()
+    return ax
 
 
 def plot_mediancol1_col2(gids_list, colname1, colname2, amp, stim_type, model_type, trial):
@@ -225,3 +291,541 @@ def plot_vm_amplitude_els_freq(table, ic_amp_range, freq):
     plt.ylabel("Amplitude (mV)", fontsize=20)
     plt.legend(fontsize=15)
     plt.show()
+
+
+##################################################
+#                                                #
+#            SIN AND SIN_DC 2D plots             #
+#                                                #
+##################################################
+
+
+def get_filtered_table(table, el_dist, icamp_restraint=None, fq_restraint=None):
+    # Make sure variables are valid
+    if el_dist not in table['distance'].unique():
+        raise ValueError('Simulation not performed for electrode at this distance. Should be in microns e.g. 20, 30')
+    
+    if icamp_restraint is not None:
+        if icamp_restraint not in table['ic_amp'].unique():
+            raise ValueError('Simulation not performed for electrode at this iclamp value. Should be in nA e.g. 0.03, 0.06 nA')
+
+    if fq_restraint is not None:
+        if fq_restraint not in table['fq'].unique():
+            raise ValueError('Simulation not performed for electrode at this frequency.')
+    
+    # Only choose electrodes at a certain distance
+    sub_table = table[table['distance'] == el_dist]
+    sub_table = sub_table[sub_table['ic_amp'] == icamp_restraint] if icamp_restraint is not None else sub_table
+    sub_table = sub_table[sub_table['fq'] == fq_restraint] if fq_restraint is not None else sub_table
+
+    return sub_table
+
+
+def plot_amp_freq(table, var_names, el_dist, icamp=None, fq=None, ax=None, size=(13,7)):
+    # fig = plt.figure(figsize=(13,7))
+
+    if ax is None:
+        ax = plt.figure(figsize=size)
+        ax = plt.subplot(111)
+
+    sub_table = get_filtered_table(table, el_dist, icamp_restraint=icamp, fq_restraint=fq)
+
+    # Get all the stimulation frequencies
+    freqs = sub_table['fq'].unique()
+    freqs.sort()
+    for var_name in var_names:        
+        # Initialize an array to store the mean var values (e.g. amp, phase) and err
+        data = np.zeros((len(freqs),2))
+        
+        for i, freq in enumerate(freqs):
+            var_data = sub_table[sub_table['fq'] == freq][var_name]
+            data[i] = [np.mean(var_data), np.std(var_data)]
+        
+        # Plot colors to match Costas' paper
+        if 'vext' in var_name:
+            color = 'r'
+        elif 'vm' in var_name:
+            color = 'g'
+        elif 'vi' in var_name:
+            color = 'b'
+        
+        # Plot
+        ax.scatter(freqs, data[:,0], s=25, label=var_name + ', distance = ' + str(el_dist), c=color)
+        ax.errorbar(freqs, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
+    
+    ax.set_title('Amplitude vs. frequency for electrode distance={}'.format(el_dist), fontsize=14)
+    ax.set_xlabel('Frequency', fontsize=14)
+    ax.set_ylabel('Amplitude (mV)', fontsize=14)
+    ax.legend(loc='center right', fontsize=11)
+    return ax
+    # plt.show()
+
+
+def plot_amp_freq_2(gid, input_type, stim_type, model_type, amps, trial, el_dist, 
+                  icamp=None, fq=None, ax=None, size=(13,7)):
+#     fig = plt.figure(figsize=(13,7))
+
+    if ax is None:
+        ax = plt.figure(figsize=size)
+        ax = plt.subplot(111)
+        
+    data_dir = ru.get_table_dir(input_type, stim_type, model_type)
+    t = ru.read_cell_tables(gid, amps, input_type, stim_type, model_type, trial, data_dir)
+    sub_table = get_filtered_table(table, el_dist, icamp_restraint=icamp, fq_restraint=fq)
+
+    # Get all the stimulation frequencies for x axis
+    freqs = sub_table['fq'].unique()
+    freqs.sort()
+    
+    var_names = ['vext_amp', 'vm_amp', 'vi_amp']
+    
+    for var_name in var_names:        
+        # Initialize an array to store the mean var values (e.g. amp, phase) and err
+        data = np.zeros((len(freqs),2))
+        
+        for i, freq in enumerate(freqs):
+            var_data = sub_table[sub_table['fq'] == freq][var_name]
+            data[i] = [np.mean(var_data), np.std(var_data)]
+        
+        # Plot colors to match Costas' paper
+        if 'vext' in var_name:
+            color = 'r'
+        elif 'vm' in var_name:
+            color = 'g'
+        elif 'vi' in var_name:
+            color = 'b'
+        
+        # Plot
+        ax.scatter(freqs, data[:,0], s=25, label=var_name + ', gid {}'.format(gid), c=color)
+        ax.errorbar(freqs, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.set_title('Amplitude vs. frequency for electrode distance {} microns'.format(el_dist), fontsize=14)
+    ax.set_xlabel('Frequency', fontsize=14)
+    ax.set_ylabel('Amplitude (mV)', fontsize=14)
+    ax.legend(loc='center right', fontsize=11)
+    
+    return ax
+#     plt.show()
+
+
+def plot_phase_freq(table, var_names, el_dist, icamp=None, fq=None, ax=None, size=(13,7)):
+    # fig = plt.figure(figsize=(13,7))
+    if ax is None:
+        ax = plt.figure(figsize=size)
+        ax = plt.subplot(111)
+
+    sub_table = get_filtered_table(table, el_dist, icamp_restraint=icamp, fq_restraint=fq)
+    # Get all the stimulation frequencies
+    freqs = sub_table['fq'].unique()
+    freqs.sort()  
+    for var_name in var_names: 
+        # Initialize an array to store the mean var values (e.g. amp, phase) and err
+        data = np.zeros((len(freqs),2))
+        
+        for i, freq in enumerate(freqs):
+            var_data = sub_table[sub_table['fq'] == freq][var_name]
+            data[i] = compute_phase_mean_and_std(var_data) 
+
+        # Plot colors to match Costas' paper
+        if 'vext' in var_name:
+            color = 'r'
+        elif 'vm' in var_name:
+            color = 'g'
+        elif 'vi' in var_name:
+            color = 'b'
+        
+        # Plot
+        ax.scatter(freqs, data[:,0], s=25, label=var_name + ', distance = ' + str(el_dist), c=color)
+        ax.errorbar(freqs, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
+
+    ax.set_title('Amplitude vs. phase for electrode distance={}'.format(el_dist), fontsize=14)
+    ax.set_xlabel('Frequency', fontsize=14)
+    ax.set_ylabel('Phase', fontsize=14)
+    ax.legend(loc='upper right', fontsize=11)
+    ax.set_ylim(-10,370)
+    # plt.show()
+    return ax
+
+
+def compute_phase_mean_and_std(phases):
+    '''This function computes the mean and standard deviation for 
+    voltage phase data. This is important because the phase is periodic 
+    so if there were values around 359 and around 1 it messes up the calculations.'''
+    
+    def compute_distance_from_0(phase):
+        '''e.g. if our phase data is [355,10], we want the avg
+        phase to be 15/2=7.5, not 365/2'''
+        if phase > 180:
+            return 360 - phase
+        else:
+            return phase
+    
+    f = np.vectorize(compute_distance_from_0)
+    mean = np.mean(f(phases))
+    std = np.std(f(phases))
+    
+    return [mean, std]
+
+
+def plot_amp_vm_stim(table, vars, el_dist, fq, ax=None, size=(13,7)):
+    # fig = plt.figure(figsize=(13,7))
+
+    if ax is None:
+        ax = plt.figure(figsize=size)
+        ax = plt.subplot(111)
+    # Only choose electrodes at a certain distance and frequency
+    sub_table = get_filtered_table(table, el_dist, icamp_restraint=None, fq_restraint=fq)
+    
+    icamps = sub_table['ic_amp'].unique()
+    icamps.sort()
+
+    for var_name in vars:
+        data = np.zeros((len(icamps),2))
+        vstim = []
+
+        for i, icamp in enumerate(icamps):
+            # For each icamp the vstim value is very close to each other, even if the distance changes
+            # Assume that the vstim values for each icamp are close enough for plotting
+            vstim.append(sub_table[sub_table['ic_amp'] == icamp]['vm_stim'].mean())
+            var_data = sub_table[sub_table['ic_amp'] == icamp][var_name]
+            data[i] = [np.mean(var_data), np.std(var_data)]
+
+        # Plot colors to match Costas' paper
+        if 'vext' in var_name:
+            color = 'r'
+        elif 'vm' in var_name:
+            color = 'g'
+        elif 'vi' in var_name:
+            color = 'b'
+        
+        # Plot
+        ax.scatter(vstim, data[:,0], s=25, label=var_name + ', distance = ' + str(el_dist), c=color)
+        ax.errorbar(vstim, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
+
+    ax.set_title('Amplitude vs. <Vm> for electrode distance={}'.format(el_dist), fontsize=14)
+    ax.set_xlabel('<Vm> (mV)', fontsize=14)
+    ax.set_ylabel('Amplitude (mV)', fontsize=14)
+    ax.legend(loc='center right', fontsize=11)
+    # plt.show()
+    return ax
+
+
+def plot_phase_vm_stim(table, vars, el_dist, fq, ax=None, size=(13,7)):
+    if ax is None:
+        ax = plt.figure(figsize=size)
+        ax = plt.subplot(111)
+    # fig = plt.figure(figsize=(13,7))
+    # Only choose electrodes at a certain distance and frequency
+    sub_table = get_filtered_table(table, el_dist, icamp_restraint=None, fq_restraint=fq)
+    
+    icamps = sub_table['ic_amp'].unique()
+    icamps.sort()
+
+    for var_name in vars:
+        data = np.zeros((len(icamps),2))
+        vstim = []
+
+        for i, icamp in enumerate(icamps):
+            # For each icamp the vstim value is very close to each other, even if the distance changes
+            # Assume that the vstim values for each icamp are close enough for plotting
+            vstim.append(sub_table[sub_table['ic_amp'] == icamp]['vm_stim'].mean())
+            var_data = sub_table[sub_table['ic_amp'] == icamp][var_name]
+            data[i] = compute_phase_mean_and_std(var_data) 
+            # data[i] = [np.mean(var_data), np.std(var_data)]
+
+        # Plot colors to match Costas' paper
+        if 'vext' in var_name:
+            color = 'r'
+        elif 'vm' in var_name:
+            color = 'g'
+        elif 'vi' in var_name:
+            color = 'b'
+        
+        # Plot
+        ax.scatter(vstim, data[:,0], s=25, label=var_name + ', distance = ' + str(el_dist), c=color)
+        ax.errorbar(vstim, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
+
+    ax.set_title('Phase vs. <Vm> for electrode distance={}'.format(el_dist), fontsize=14)
+    ax.set_xlabel('<Vm> (mV)', fontsize=14)
+    ax.set_ylabel('Phase', fontsize=14)
+    ax.legend(loc='upper right', fontsize=11)
+    ax.set_ylim(-10,370)
+    # plt.show()
+    return ax
+
+
+def plot_xcorr(table, input_type, stim_type, model_type, cell_gid, dist, fq, amp, icamp=None, 
+               saved_data=None, include_sin=True, ax=None):
+
+    def get_dir_name(el, fq, amp, trial, include_sin, include_iclamp, ic_amp=None):
+        """ Find all the outputs for the table"""
+        if  not include_sin and not include_iclamp:
+            return ru.get_dc_dir_name(el, amp, trial)
+        if include_sin and not include_iclamp:
+            return ru.get_dir_name(el=el, amp=amp, freq=fq, ic_amp=None, trial=trial)
+        if include_iclamp:
+            return ru.get_dir_name(el=el, amp=amp, freq=fq, ic_amp=ic_amp, trial=trial)
+
+    
+    cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
+    include_iclamp = input_type == ru.InputType.EXTRASTIM_INTRASTIM
+    sub_table = plot_helper.get_filtered_table(table, dist, fq_restraint=fq, icamp_restraint=icamp)
+    
+    sampl_rate = 40000
+    maxlags = sampl_rate/fq
+            
+    ex_delay = 1000
+    ex_dur = 9000
+    t_start_analysis = ex_delay + 3000.   # 1000 + 3000 = 4000
+    t_end_analysis = ex_delay + ex_dur - 2000.   # 8000
+    
+    ccor_vi = []
+    ccor_vm = []
+    
+    els = sub_table['electrode']
+    # print(len(els))
+    for el in els:
+        dir_name = get_dir_name(el, fq, amp, 0, include_sin, include_iclamp, icamp)
+        out_dir =  ru.concat_path(cell_out_dir, dir_name)
+        cvh5 = ru.get_cv_files(out_dir, [0])[0]
+        dt = cvh5.attrs['dt']
+
+        ve = cvh5['vext'].value
+        vm = cvh5['vm'].value
+        ve = ve[int(t_start_analysis/dt):int(t_end_analysis/dt)]
+        vm = vm[int(t_start_analysis/dt):int(t_end_analysis/dt)]
+        vi = np.add(ve, vm)
+        
+        Nx = len(vi)
+        # Compute cross correlation
+        c_vi = np.correlate(vi - np.mean(vi), ve - np.mean(ve), mode=2)
+        c_vm = np.correlate(vm - np.mean(vm), ve - np.mean(ve), mode=2)
+
+        # Normalize
+        c_vi = np.true_divide(c_vi, (Nx * np.std(vi - np.mean(vi)) * np.std(ve - np.mean(ve))))
+        c_vm = np.true_divide(c_vm, (Nx * np.std(vm - np.mean(vm)) * np.std(ve - np.mean(ve))))
+            
+        c_vi = c_vi[Nx - 1 - maxlags:Nx + maxlags]
+        c_vm = c_vm[Nx - 1 - maxlags:Nx + maxlags]
+        ccor_vi.append(c_vi)
+        ccor_vm.append(c_vm)
+        
+    if ax is None:
+        ax = plt.figure(figsize=(11,5))
+        ax = plt.subplot(111)
+    t = np.linspace(-1./fq, 1./fq, len(ccor_vi[0]))
+    ax.plot(t, np.mean(ccor_vi, axis=0), c='b', label='vi_ve')
+    ax.plot(t, np.mean(ccor_vm, axis=0), c='g', label='vm_ve')
+    ax.errorbar(t, np.mean(ccor_vi, axis=0), np.std(ccor_vi, axis=0), alpha=0.01, c='b')
+    ax.errorbar(t, np.mean(ccor_vm, axis=0), np.std(ccor_vm, axis=0), alpha=0.01, c='g')    
+    ax.set_xlim(-1./fq, 1./fq)
+    ax.set_xticks(np.linspace(-1./fq, 1./fq, 3))
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+#     ax.set_xlabel('Time period (s)')
+#     ax.set_ylabel('xcorr')
+
+
+##################################################
+#                                                #
+#                 3D plots                       #
+#                                                #
+##################################################
+
+# groupby_cols = ['distance', 'fq']
+# var_cols = ['vm_amp', 'vm_phase', 'vext_amp', 'vext_phase', 'vi_amp', 'vi_phase']
+
+# groupby_cols_sindc = ['distance', 'fq', 'ic_amp']
+# var_cols_sindc = ['vm_amp', 'vm_phase', 'vext_amp', 'vext_phase', 'vi_amp', 'vi_phase', 'vm_stim']
+
+### EXAMPLE
+# t = get_concat_df(cell_list, 'extrastim', 'sin', 'all_active', [-0.0002], 0)
+# t_merged = get_merged_mean(t, groupby_cols, var_cols)
+# plot_3d_colorbar(t_merged, 'fq', 'vm_amp', 'vext_amp', 0, 3)
+
+# t = get_concat_df(cell_list, 'extrastim_intrastim', 'sin_dc', 'all_active', [-0.0002], 0)
+# t_merged = get_merged_mean(t, groupby_cols, var_cols)
+# plot_3d_colorbar(t_merged[t_merged['fq']==8], 'vm_stim', 'vm_amp', 'vext_amp', 0, 3)
+
+
+def get_concat_df(cell_list, input_type, stim_type, model_type, amp_range, trial):
+    df = pd.DataFrame()
+    for cell_id in cell_list:
+        table = ru.read_cell_tables(input_type=input_type, stim_type=stim_type, model_type=model_type,
+                                    cell_gid=cell_id, amp_range=amp_range, trial=trial)
+        print "finished reading the table for cell_id:", cell_id
+        # Move vext phase from 360 to 0
+        table.loc[(table["vext_phase"] < 360) & (table['vext_phase'] > 359), "vext_phase"] = table["vext_phase"] - 360
+        df = pd.concat([df, table])
+    return df
+
+
+def get_merged_mean(df, groupby_cols, var_cols):
+    return df.groupby(groupby_cols)[var_cols].mean().reset_index()
+
+
+def get_merged_sem(df, groupby_cols, var_cols):
+    return df.groupby(groupby_cols)[var_cols].sem().reset_index()
+
+
+def get_mesh(table, xcol, zcol, z1col, ycol='distance'):
+    x = table[xcol].values
+    z = table[zcol].values
+    z1 = table[z1col].values
+    y = table[ycol].values
+    
+    xi = np.linspace(np.min(x), np.max(x))
+    yi = np.linspace(np.min(y), np.max(y))
+    
+    X, Y = np.meshgrid(xi, yi)
+    Z = griddata(x, y, z, xi, yi, interp='linear')
+    Z1 = griddata(x, y, z1, xi, yi, interp='linear')
+    return X, Y, Z, Z1
+
+
+def plot_3d_colorbar(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib.mlab import griddata
+    import matplotlib
+    import numpy as np
+    import pandas as pd
+    
+    fig = plt.figure(figsize=size)
+    ax = fig.gca(projection='3d')
+    
+    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
+    norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
+    
+    ax.tick_params(axis='x', which='major', pad=5)
+    ax.tick_params(axis='y', which='major', pad=5)
+    ax.tick_params(axis='z', which='major', pad=20)
+
+    # Surface
+    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
+                            linewidth=1, antialiased=True)
+    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
+                            linewidth=1, antialiased=True)
+    
+    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
+    m.set_array([])
+    #cbar=plt.colorbar(m)
+    #cbar.ax.tick_params(labelsize=20)
+    ax.tick_params(labelsize=35)
+    plt.gca().invert_yaxis()
+    return ax
+
+# For sin_dc phase plot
+def plot_3d_colorbar2(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib.mlab import griddata
+    import matplotlib
+    import numpy as np
+    import pandas as pd
+    
+    fig = plt.figure(figsize=size)
+    ax = fig.gca(projection='3d')
+    
+    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
+    norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
+    
+    ax.tick_params(axis='x', which='major', pad=5)
+    ax.tick_params(axis='y', which='major', pad=5)
+    ax.tick_params(axis='z', which='major', pad=20)
+
+    # Surface
+    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
+                            linewidth=1, antialiased=True)
+    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
+                            linewidth=1, antialiased=True)
+    
+    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
+    m.set_array([])
+    #cbar=plt.colorbar(m)
+    #cbar.ax.tick_params(labelsize=20)
+    ax.tick_params(labelsize=35)
+    plt.gca().invert_yaxis()
+    return ax
+
+
+def plot_3d_colorbar_transparent(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib.mlab import griddata
+    import matplotlib
+    import numpy as np
+    import pandas as pd
+    
+    fig = plt.figure(figsize=size)
+    ax = fig.gca(projection='3d')
+    
+    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
+    norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
+    
+    ax.tick_params(axis='x', which='major', pad=5)
+    ax.tick_params(axis='y', which='major', pad=5)
+    ax.tick_params(axis='z', which='major', pad=20)
+
+    # Scatter
+    ax.scatter(merged_table[xcol], merged_table[ycol], merged_table[zcol], cmap=plt.cm.jet(norm(Z)), s=50)
+    ax.scatter(merged_table[xcol], merged_table[ycol], merged_table[zcol1], cmap=plt.cm.jet(norm(Z)), s=50)
+    
+    # Surface
+    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
+                            linewidth=1, antialiased=True, alpha=0.1)
+    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
+                            linewidth=1, antialiased=True, alpha=0.1)
+    
+    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
+    m.set_array([])
+    #cbar=plt.colorbar(m)
+    #cbar.ax.tick_params(labelsize=20)
+    ax.tick_params(labelsize=35)
+    plt.gca().invert_yaxis()
+    return ax
+
+
+# For sin_dc phase plot
+def plot_3d_colorbar_transparent2(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib.mlab import griddata
+    import matplotlib
+    import numpy as np
+    import pandas as pd
+    
+    fig = plt.figure(figsize=size)
+    ax = fig.gca(projection='3d')
+    
+    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
+    norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
+    
+    ax.tick_params(axis='x', which='major', pad=5)
+    ax.tick_params(axis='y', which='major', pad=5)
+    ax.tick_params(axis='z', which='major', pad=20)
+
+    # Scatter
+    ax.scatter(merged_table[xcol], merged_table[ycol], merged_table[zcol], cmap=plt.cm.jet(norm(Z)), s=50)
+    ax.scatter(merged_table[xcol], merged_table[ycol], merged_table[zcol1], cmap=plt.cm.jet(norm(Z)), s=50)
+    
+    # Surface
+    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
+                            linewidth=1, antialiased=True, alpha=0.1)
+    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
+                            linewidth=1, antialiased=True, alpha=0.1)
+    
+    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
+    m.set_array([])
+    #cbar=plt.colorbar(m)
+    #cbar.ax.tick_params(labelsize=20)
+    ax.tick_params(labelsize=35)
+    plt.gca().invert_yaxis()
+    return ax

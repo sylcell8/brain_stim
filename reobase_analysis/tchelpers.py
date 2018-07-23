@@ -238,7 +238,6 @@ def plot_f_i(output, currents, stim_time, ax=None, cell=None, size=(13, 7), **kw
     ax.set_xlabel("Amplitude (mA)")
     ax.set_ylabel("Frequency of Spikes (1/ms)")
     return ax
-        
 
 def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp=None,  twin=None, ax=None):
     # print     var_name, cell_id, input_type, stim_type, model_type, el, amp, freq, trial, saved_data, ic_amp
@@ -248,7 +247,12 @@ def plot_cell_var(var_name, cell_id, input_type, stim_type, model_type, el, amp,
     out_dir = concat_path(output_dir, output_file)
     cvh5 = get_cv_files(out_dir, [0])[0]
     dt = cvh5.attrs['dt']
-    var = cvh5[var_name].value
+    if var_name == 'vi':
+        ve = cvh5['vext'].value
+        vm = cvh5['vm'].value
+        var = np.add(ve, vm)
+    else:
+        var = cvh5[var_name].value
 
     if twin is not None:
         beg_cut = twin[0]

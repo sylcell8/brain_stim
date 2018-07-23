@@ -16,7 +16,10 @@ def get_mean_trace_h5(var_name ,cvh5, ex_delay, ex_dur, freq):
     'This is used for subthreshold analysis only. We cut the first 4s (which is ex_delay+3000) also the final 2s\
     which is ex_delay + ex_dur - 2000'
     dt = cvh5.attrs['dt']
-    var = cvh5[var_name].value
+    if var_name == 'vi':
+        var = np.add(cvh5['vm'].value, cvh5['vext'].value)
+    else:
+        var = cvh5[var_name].value
     t_start_analysis = ex_delay + 3000.
     t_end_analysis = ex_delay + ex_dur - 2000
 
@@ -43,7 +46,7 @@ def fit_sin_h5(var_name ,cvh5, ex_delay, ex_dur, freq):
     guess_std = 0.002
     guess_phase = 1
 
-    data_first_guess = guess_std * np.sin(t + guess_phase) + guess_mean
+    # data_first_guess = guess_std * np.sin(t + guess_phase) + guess_mean
     optimize_func = lambda x: x[0] * np.sin(t + x[1]) + x[2] - data
     est_std, est_phase, est_mean = leastsq(optimize_func, [guess_std, guess_phase, guess_mean])[0]
     data_fit = est_std * np.sin(t + est_phase) + est_mean

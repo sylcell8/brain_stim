@@ -25,13 +25,13 @@ config_base = sargs.config_base
 batch_config = {
     "el_range": [0, sargs.number_el],
     "cell_gid": sargs.cell_gid,
-    "amps": [-0.001, -0.002, -0.003, -0.004, -0.005, -0.006, -0.007, -0.008, -0.009, -0.01],
+    "amps": [-0.0002],
     "freqs": [1, 8, 30],
     "trial": sargs.trial,
-    "input_type": str(InputType.EXTRASTIM),
-    "stim_type": str(StimType.SIN), # output directory name -- differs from waveform type, b/c includes external inputs
+    "input_type": str(InputType.EXTRASTIM_INTRASTIM),
+    "stim_type": str(StimType.SIN_DC), # output directory name -- differs from waveform type, b/c includes external inputs
     "model_type": str(ModelType.ACTIVE),
-    #"ic_amps": [0.07],
+    "ic_amps": [0.11],
 }
 
 print sargs
