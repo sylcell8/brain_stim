@@ -321,19 +321,20 @@ def get_filtered_table(table, el_dist, icamp_restraint=None, fq_restraint=None):
     return sub_table
 
 
-def plot_amp_freq(table, var_names, el_dist, icamp=None, fq=None, ax=None, size=(13,7)):
-    # fig = plt.figure(figsize=(13,7))
-
+def plot_amp_vs_freq(gid, input_type, stim_type, model_type, amps, trial, el_dist, 
+                     icamp=None, ax=None, size=(13,7)):
     if ax is None:
         ax = plt.figure(figsize=size)
         ax = plt.subplot(111)
+        
+    t = ru.read_cell_tables(gid, amps, input_type, stim_type, model_type, trial)
+    sub_table = get_filtered_table(t, el_dist, icamp_restraint=icamp, fq_restraint=None)
 
-    sub_table = get_filtered_table(table, el_dist, icamp_restraint=icamp, fq_restraint=fq)
-
-    # Get all the stimulation frequencies
+    # Get all the stimulation frequencies for x axis
     freqs = sub_table['fq'].unique()
     freqs.sort()
-    for var_name in var_names:        
+    
+    for var_name in ['vext_amp', 'vm_amp', 'vi_amp']:        
         # Initialize an array to store the mean var values (e.g. amp, phase) and err
         data = np.zeros((len(freqs),2))
         
@@ -352,52 +353,6 @@ def plot_amp_freq(table, var_names, el_dist, icamp=None, fq=None, ax=None, size=
         # Plot
         ax.scatter(freqs, data[:,0], s=25, label=var_name + ', distance = ' + str(el_dist), c=color)
         ax.errorbar(freqs, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
-    
-    ax.set_title('Amplitude vs. frequency for electrode distance={}'.format(el_dist), fontsize=14)
-    ax.set_xlabel('Frequency', fontsize=14)
-    ax.set_ylabel('Amplitude (mV)', fontsize=14)
-    ax.legend(loc='center right', fontsize=11)
-    return ax
-    # plt.show()
-
-
-def plot_amp_freq_2(gid, input_type, stim_type, model_type, amps, trial, el_dist, 
-                  icamp=None, fq=None, ax=None, size=(13,7)):
-#     fig = plt.figure(figsize=(13,7))
-
-    if ax is None:
-        ax = plt.figure(figsize=size)
-        ax = plt.subplot(111)
-        
-    data_dir = ru.get_table_dir(input_type, stim_type, model_type)
-    t = ru.read_cell_tables(gid, amps, input_type, stim_type, model_type, trial, data_dir)
-    sub_table = get_filtered_table(table, el_dist, icamp_restraint=icamp, fq_restraint=fq)
-
-    # Get all the stimulation frequencies for x axis
-    freqs = sub_table['fq'].unique()
-    freqs.sort()
-    
-    var_names = ['vext_amp', 'vm_amp', 'vi_amp']
-    
-    for var_name in var_names:        
-        # Initialize an array to store the mean var values (e.g. amp, phase) and err
-        data = np.zeros((len(freqs),2))
-        
-        for i, freq in enumerate(freqs):
-            var_data = sub_table[sub_table['fq'] == freq][var_name]
-            data[i] = [np.mean(var_data), np.std(var_data)]
-        
-        # Plot colors to match Costas' paper
-        if 'vext' in var_name:
-            color = 'r'
-        elif 'vm' in var_name:
-            color = 'g'
-        elif 'vi' in var_name:
-            color = 'b'
-        
-        # Plot
-        ax.scatter(freqs, data[:,0], s=25, label=var_name + ', gid {}'.format(gid), c=color)
-        ax.errorbar(freqs, data[:,0], data[:,1], capsize=6, capthick=3, c=color)
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -407,20 +362,25 @@ def plot_amp_freq_2(gid, input_type, stim_type, model_type, amps, trial, el_dist
     ax.legend(loc='center right', fontsize=11)
     
     return ax
-#     plt.show()
 
 
-def plot_phase_freq(table, var_names, el_dist, icamp=None, fq=None, ax=None, size=(13,7)):
-    # fig = plt.figure(figsize=(13,7))
+def plot_phase_vs_freq(gid, input_type, stim_type, model_type, amps, trial, el_dist, icamp=None, ax=None, size=(13,7)):
     if ax is None:
         ax = plt.figure(figsize=size)
         ax = plt.subplot(111)
+    
+    t = ru.read_cell_tables(gid, amps, input_type, stim_type, model_type, trial)
+    sub_table = get_filtered_table(t, el_dist, icamp_restraint=icamp, fq_restraint=None)
+        # Turn phases from 0 to 360
+    sub_table.loc[(sub_table["vext_phase"] < 360) & (sub_table['vext_phase'] > 359), "vext_phase"] = sub_table["vext_phase"] - 360
+    sub_table.loc[sub_table["vi_phase"] < 0, "vi_phase"] = sub_table["vi_phase"] + 360
 
-    sub_table = get_filtered_table(table, el_dist, icamp_restraint=icamp, fq_restraint=fq)
+
     # Get all the stimulation frequencies
     freqs = sub_table['fq'].unique()
     freqs.sort()  
-    for var_name in var_names: 
+    
+    for var_name in ['vext_phase', 'vm_phase', 'vi_phase']: 
         # Initialize an array to store the mean var values (e.g. amp, phase) and err
         data = np.zeros((len(freqs),2))
         
@@ -445,7 +405,6 @@ def plot_phase_freq(table, var_names, el_dist, icamp=None, fq=None, ax=None, siz
     ax.set_ylabel('Phase', fontsize=14)
     ax.legend(loc='upper right', fontsize=11)
     ax.set_ylim(-10,370)
-    # plt.show()
     return ax
 
 
@@ -469,19 +428,19 @@ def compute_phase_mean_and_std(phases):
     return [mean, std]
 
 
-def plot_amp_vm_stim(table, vars, el_dist, fq, ax=None, size=(13,7)):
-    # fig = plt.figure(figsize=(13,7))
-
+def plot_amp_vs_vm_stim(gid, input_type, stim_type, model_type, amps, trial, el_dist, fq, ax=None, size=(13,7)):
     if ax is None:
         ax = plt.figure(figsize=size)
         ax = plt.subplot(111)
+
+    t = ru.read_cell_tables(gid, amps, input_type, stim_type, model_type, trial)
     # Only choose electrodes at a certain distance and frequency
-    sub_table = get_filtered_table(table, el_dist, icamp_restraint=None, fq_restraint=fq)
+    sub_table = get_filtered_table(t, el_dist, icamp_restraint=None, fq_restraint=fq)
     
     icamps = sub_table['ic_amp'].unique()
     icamps.sort()
 
-    for var_name in vars:
+    for var_name in ['vext_amp', 'vm_amp', 'vi_amp']:
         data = np.zeros((len(icamps),2))
         vstim = []
 
@@ -508,22 +467,25 @@ def plot_amp_vm_stim(table, vars, el_dist, fq, ax=None, size=(13,7)):
     ax.set_xlabel('<Vm> (mV)', fontsize=14)
     ax.set_ylabel('Amplitude (mV)', fontsize=14)
     ax.legend(loc='center right', fontsize=11)
-    # plt.show()
     return ax
 
 
-def plot_phase_vm_stim(table, vars, el_dist, fq, ax=None, size=(13,7)):
+def plot_phase_vs_vm_stim(gid, input_type, stim_type, model_type, amps, trial, el_dist, fq, ax=None, size=(13,7)):
     if ax is None:
         ax = plt.figure(figsize=size)
         ax = plt.subplot(111)
-    # fig = plt.figure(figsize=(13,7))
+
+    t = ru.read_cell_tables(gid, amps, input_type, stim_type, model_type, trial)
     # Only choose electrodes at a certain distance and frequency
-    sub_table = get_filtered_table(table, el_dist, icamp_restraint=None, fq_restraint=fq)
-    
+    sub_table = get_filtered_table(t, el_dist, icamp_restraint=None, fq_restraint=fq)
+    # Turn phases from 0 to 360
+    sub_table.loc[(sub_table["vext_phase"] < 360) & (sub_table['vext_phase'] > 359), "vext_phase"] = sub_table["vext_phase"] - 360
+    sub_table.loc[sub_table["vi_phase"] < 0, "vi_phase"] = sub_table["vi_phase"] + 360
+
     icamps = sub_table['ic_amp'].unique()
     icamps.sort()
 
-    for var_name in vars:
+    for var_name in ['vext_phase', 'vm_phase', 'vi_phase']:
         data = np.zeros((len(icamps),2))
         vstim = []
 
@@ -552,7 +514,6 @@ def plot_phase_vm_stim(table, vars, el_dist, fq, ax=None, size=(13,7)):
     ax.set_ylabel('Phase', fontsize=14)
     ax.legend(loc='upper right', fontsize=11)
     ax.set_ylim(-10,370)
-    # plt.show()
     return ax
 
 
