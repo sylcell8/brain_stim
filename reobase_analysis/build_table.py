@@ -23,9 +23,9 @@ a constant input without external input. This allows us to look at the subthresh
 If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 """
 
-def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, include_delta_vm = True,
-                 include_sin = True, include_vm_phase_analysis=True, include_vext_phase_analysis=True,
-                 include_vi_phase_analysis = True, include_spike_phase = True, saved_data= False):
+def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, include_delta_vm=True,
+                 include_sin=True, include_vm_phase_analysis=True, include_vext_phase_analysis=True,
+                 include_vi_phase_analysis=True, include_spike_phase=True, saved_data=False):
     cell_csv_pattern = '/*_cel[ls]*csv'
     cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
     include_iclamp = input_type == InputType.EXTRASTIM_INTRASTIM
@@ -74,22 +74,11 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
             el_dist = round(np.linalg.norm(el_xyz - cell_xyz))
 
             try:
-                vm_data = extract_vm_data(cvh5, stim_type, ex_delay, ex_dur, iclamp_delay = in_delay, iclamp_dur = in_dur) if include_delta_vm else []
-                vm_rest = vm_data.pop(0)
-
-                vm_phase_analysis_data = extract_v_phase_analysis('vm',cvh5, ex_delay, ex_dur, fq)
-                vext_phase_analysis_data = extract_v_phase_analysis('vext',cvh5, ex_delay, ex_dur, fq)
-                vi_phase_analysis_data = extract_v_phase_analysis('vi', cvh5, ex_delay, ex_dur, fq)
-
-                spike_threshold_data = extract_spike_threshold_t(cvh5)
-
-                spike_phase_data = extract_spike_phase('vext', cvh5, ex_delay, ex_dur)
-
-                spike_threshold_phase_data = [spike_threshold_data] + [spike_phase_data]
-
                 data = [[trial, el], el_xyz, [el_dist, amp, spikes]]
 
                 if include_delta_vm:
+                    vm_data = extract_vm_data(cvh5, stim_type, ex_delay, ex_dur, iclamp_delay = in_delay, iclamp_dur = in_dur) if include_delta_vm else []
+                    vm_rest = vm_data.pop(0)
                     data = data + [vm_data]
 
                 if include_sin:
@@ -99,15 +88,21 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
                     data = data + [[ic_amp]]
 
                 if include_vm_phase_analysis:
+                    vm_phase_analysis_data = extract_v_phase_analysis('vm', cvh5, ex_delay, ex_dur, fq)
                     data = data + [vm_phase_analysis_data]
 
                 if include_vext_phase_analysis:
+                    vext_phase_analysis_data = extract_v_phase_analysis('vext', cvh5, ex_delay, ex_dur, fq)
                     data = data + [vext_phase_analysis_data]
 
                 if include_vi_phase_analysis:
+                    vi_phase_analysis_data = extract_v_phase_analysis('vi', cvh5, ex_delay, ex_dur, fq)
                     data = data + [vi_phase_analysis_data]
 
                 if include_spike_phase:
+                    spike_threshold_data = extract_spike_threshold_t(cvh5)
+                    spike_phase_data = extract_spike_phase('vext', cvh5, ex_delay, ex_dur)
+                    spike_threshold_phase_data = [spike_threshold_data] + [spike_phase_data]
                     data = data + [spike_threshold_phase_data]
 
                 table.loc[run_id] = list(itertools.chain.from_iterable(data))
@@ -117,9 +112,10 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type , inputs, trial, in
 
         index_close_els = ru.get_index_close_els(cell_gid, input_type, stim_type, model_type, trial, saved_data)
         table = table.drop(index_close_els)
-        table.loc[table['vm_phase'] < 0, 'vm_phase'] = table['vm_phase'] + 360
+        if include_vm_phase_analysis:
+            table.loc[table['vm_phase'] < 0, 'vm_phase'] = table['vm_phase'] + 360
+            # table.loc[table["vi_phase"] < 0, "vi_phase"] = table["vi_phase"] + 360
         # table.loc[table["vext_phase"] < 0, "vext_phase"] = table["vext_phase"] + 360
-        # table.loc[table["vi_phase"] < 0, "vi_phase"] = table["vi_phase"] + 360
 
         filename = ru.get_table_filename(cell_gid, amp, trial)
         print 'Data collected. Writing to {}...'.format(filename)
@@ -257,7 +253,7 @@ def extract_vm_data(cvh5, stim_type, ex_delay, ex_dur, **kwargs):
     return [vm_rest, vm_stim, (vm_stim - vm_rest)]
 
 
-def build_dc(cell_gid, ex_inputs, input_type, stim_type, model_type , trial):
+def build_dc(cell_gid, ex_inputs, input_type, stim_type, model_type, trial):
     cell_csv_pattern = '/*_cel[ls]*csv'  # ridiculous pattern matching for old files called 1_cell.csv vs new ones called [gid].csv
     cell_out_dir = ru.get_output_dir(stim_type, model_type, cell_gid)
     include_delta_vm = stim_type == StimType.DC.value
