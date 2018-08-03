@@ -6,6 +6,26 @@ import reobase_analysis.reobase_utils as ru
 from matplotlib.mlab import griddata
 import h5py
 
+### EXAMPLES
+# SIN
+# groupby_cols = ["distance", "fq"]
+# agg_cols = ['vm_phase', 'vm_amp', 'vext_phase','vext_amp', 'vi_phase', 'vi_amp']
+# merge_cols = ['distance', 'fq']
+# t = tpl.get_grouped_dic(cell_list, input_type, stim_type, model_type, inputs, trial, groupby_cols, agg_cols)
+# merged = tpl.get_merged_table(t, merge_cols=merge_cols)
+# X, Y, Z, Z1, x, y, z, z1 = tpl.get_mesh_X_Y_Z_Z1(merged, xcol="fq", zcol="vm_amp", z1col="vext_amp", ycol="distance")
+# ax = tpl.plot_3d_colorbar_mean_mean_scatter(X, Y, Z, Z1, x, y, z, z1, 0, 3)
+# ax = tpl.plot_3d_colorbar(X, Y, Z, Z1, 0, 3)
+
+# SIN_DC
+# groupby_cols = ["distance", "ic_amp", "fq"]
+# agg_cols = ['vm_phase', 'vm_amp', 'vext_phase','vext_amp', 'vi_phase', 'vi_amp', 'vm_stim']
+# merge_cols = ['distance', "ic_amp", "fq"]
+# t = tpl.get_grouped_dic(cell_list, input_type, stim_type, model_type, inputs, trial, groupby_cols, agg_cols)
+# merged = tpl.get_merged_table(t, merge_cols=merge_cols)
+# X, Y, Z, Z1, x, y, z, z1 = tpl.get_mesh_X_Y_Z_Z1(merged[merged['fq']==8], xcol="vm_stim", zcol="vm_phase", z1col="vext_phase", ycol="distance")
+# ax = tpl.plot_3d_colorbar(X, Y, Z, Z1, 0, 3)
+
 def get_grouped_dic(cell_list, input_type, stim_type, model_type, amp_range, trial, groupby_cols, agg_cols):
     data = {}
     for cell_id in cell_list:
@@ -103,6 +123,9 @@ def plot_3d_colorbar(X, Y, Z, Z1, cbar_min, cbar_max, figsize=(18,14), ax=None):
 
 def plot_3d_colorbar_mean_mean_scatter(X, Y, Z, Z1, x_mean, y_mean, z_mean, z1_mean, cbar_min, cbar_max, 
                      figsize=(18,14), ax=None):
+    '''Same as plot_3d_colorbar except it plots a transparent surface with the points overlayed 
+    as a scatter plot. The points represent the mean of mean of the phase or amplitude plotted for
+    that distance and frequency/vm stim.'''
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     import matplotlib.pyplot as plt
@@ -607,7 +630,7 @@ def plot_xcorr(table, input_type, stim_type, model_type, cell_gid, dist, fq, amp
 # plot_3d_colorbar_transparent(t_merged, 'fq', 'vm_amp', 'vext_amp', 0, 3)
 
 # t = get_concat_df(cell_list, 'extrastim_intrastim', 'sin_dc', 'all_active', [-0.0002], 0)
-# t_merged = get_merged_mean(t, groupby_cols, var_cols)
+# t_merged = get_merged_mean(t, groupby_cols_sindc, var_cols_sindc)
 # plot_3d_colorbar_transparent(t_merged[t_merged['fq']==8], 'vm_stim', 'vm_amp', 'vext_amp', 0, 3)
 
 
