@@ -71,8 +71,7 @@ def get_mesh_X_Y_Z_Z1(merged_table, xcol, zcol, z1col, ycol="distance", error=Fa
     return X, Y, Z, Z1, x, y, z, z1
 
 
-def plot_3d_colorbar(X, Y, Z, Z1, x_mean, y_mean, z_mean, z1_mean, cbar_min, cbar_max, 
-                     figsize=(18,14), ax=None):
+def plot_3d_colorbar(X, Y, Z, Z1, cbar_min, cbar_max, figsize=(18,14), ax=None):
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     import matplotlib.pyplot as plt
@@ -605,11 +604,11 @@ def plot_xcorr(table, input_type, stim_type, model_type, cell_gid, dist, fq, amp
 ### EXAMPLE
 # t = get_concat_df(cell_list, 'extrastim', 'sin', 'all_active', [-0.0002], 0)
 # t_merged = get_merged_mean(t, groupby_cols, var_cols)
-# plot_3d_colorbar(t_merged, 'fq', 'vm_amp', 'vext_amp', 0, 3)
+# plot_3d_colorbar_transparent(t_merged, 'fq', 'vm_amp', 'vext_amp', 0, 3)
 
 # t = get_concat_df(cell_list, 'extrastim_intrastim', 'sin_dc', 'all_active', [-0.0002], 0)
 # t_merged = get_merged_mean(t, groupby_cols, var_cols)
-# plot_3d_colorbar(t_merged[t_merged['fq']==8], 'vm_stim', 'vm_amp', 'vext_amp', 0, 3)
+# plot_3d_colorbar_transparent(t_merged[t_merged['fq']==8], 'vm_stim', 'vm_amp', 'vext_amp', 0, 3)
 
 
 def get_concat_df(cell_list, input_type, stim_type, model_type, amp_range, trial):
@@ -647,74 +646,6 @@ def get_mesh(table, xcol, zcol, z1col, ycol='distance'):
     return X, Y, Z, Z1
 
 
-def plot_3d_colorbar(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
-    from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib import cm
-    import matplotlib.pyplot as plt
-    from matplotlib.mlab import griddata
-    import matplotlib
-    import numpy as np
-    import pandas as pd
-    
-    fig = plt.figure(figsize=size)
-    ax = fig.gca(projection='3d')
-    
-    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
-    norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
-    
-    ax.tick_params(axis='x', which='major', pad=5)
-    ax.tick_params(axis='y', which='major', pad=5)
-    ax.tick_params(axis='z', which='major', pad=20)
-
-    # Surface
-    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
-                            linewidth=1, antialiased=True)
-    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
-                            linewidth=1, antialiased=True)
-    
-    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
-    m.set_array([])
-    #cbar=plt.colorbar(m)
-    #cbar.ax.tick_params(labelsize=20)
-    ax.tick_params(labelsize=35)
-    plt.gca().invert_yaxis()
-    return ax
-
-# For sin_dc phase plot
-def plot_3d_colorbar2(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
-    from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib import cm
-    import matplotlib.pyplot as plt
-    from matplotlib.mlab import griddata
-    import matplotlib
-    import numpy as np
-    import pandas as pd
-    
-    fig = plt.figure(figsize=size)
-    ax = fig.gca(projection='3d')
-    
-    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
-    norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
-    
-    ax.tick_params(axis='x', which='major', pad=5)
-    ax.tick_params(axis='y', which='major', pad=5)
-    ax.tick_params(axis='z', which='major', pad=20)
-
-    # Surface
-    surf2 = ax.plot_surface(X, Y, Z1, rstride=1, cstride=1, facecolors=plt.cm.jet(norm(Z1)),
-                            linewidth=1, antialiased=True)
-    surf1 = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,facecolors=plt.cm.jet(norm(Z)),
-                            linewidth=1, antialiased=True)
-    
-    m = cm.ScalarMappable(cmap=plt.cm.jet, norm=norm)
-    m.set_array([])
-    #cbar=plt.colorbar(m)
-    #cbar.ax.tick_params(labelsize=20)
-    ax.tick_params(labelsize=35)
-    plt.gca().invert_yaxis()
-    return ax
-
-
 def plot_3d_colorbar_transparent(merged_table, xcol, zcol, zcol1, cbar_min, cbar_max, ycol='distance', size=(18,10)):
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
@@ -727,7 +658,7 @@ def plot_3d_colorbar_transparent(merged_table, xcol, zcol, zcol1, cbar_min, cbar
     fig = plt.figure(figsize=size)
     ax = fig.gca(projection='3d')
     
-    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
+    X, Y, Z, Z1 = get_mesh(merged_table, xcol, zcol, zcol1)
     norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
     
     ax.tick_params(axis='x', which='major', pad=5)
@@ -766,7 +697,7 @@ def plot_3d_colorbar_transparent2(merged_table, xcol, zcol, zcol1, cbar_min, cba
     fig = plt.figure(figsize=size)
     ax = fig.gca(projection='3d')
     
-    X, Y, Z, Z1 = tpl.get_mesh(merged_table, xcol, zcol, zcol1)
+    X, Y, Z, Z1 = get_mesh(merged_table, xcol, zcol, zcol1)
     norm = matplotlib.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
     
     ax.tick_params(axis='x', which='major', pad=5)
