@@ -186,10 +186,10 @@ def resolve_sin_dc_key(el, amp, freq, ic_amp):
 def get_sin_dc_dir_name(el, amp, freq, ic_amp, trial):
     return '_'.join([resolve_sin_dc_key(el, amp, freq, ic_amp), 'tr' + str(trial)])
 
-def get_sin_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial=0):
-    root_dir = get_output_dir(input_type , stim_type, model_type, cell_gid)
-    out_dir = get_sin_dc_dir_name(el, amp, freq, ic_amp, trial)
-    return concat_path(root_dir, out_dir)
+# def get_sin_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial=0):
+#     root_dir = get_output_dir(input_type , stim_type, model_type, cell_gid)
+#     out_dir = get_sin_dc_dir_name(el, amp, freq, ic_amp, trial)
+#     return concat_path(root_dir, out_dir)
 
 
 ### DC ###

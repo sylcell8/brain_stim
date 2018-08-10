@@ -91,7 +91,7 @@ def get_axon_direction(hobj):
 
 
 def fix_axon_perisomatic(hobj):
-    bionet_io.print2log0('Fixing Axon like perisomatic')
+    # bionet_io.print2log0('Fixing Axon like perisomatic')
     all_sec_names = []
     for sec in hobj.all:
         all_sec_names.append(sec.name().split(".")[1][:4])
@@ -123,7 +123,7 @@ def fix_axon_perisomatic(hobj):
     h.define_shape()
 
     for sec in hobj.axon:
-        print "sec.L:", sec.L
+        # print "sec.L:", sec.L
         if (np.abs(30-sec.L) > 0.0001):
             print "ERROR: axon stub L is less than 30"
             exit()

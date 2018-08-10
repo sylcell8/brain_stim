@@ -16,7 +16,7 @@ def build_spike_trains(firing_rate, T, num_trials, num_cells):
     :return:
     """
 
-    input_spike_file_name = '/Users/Taylor/projects/allen2017/poisson_input_spk_train.nwb'
+    input_spike_file_name = '/home/fahimehb/Downloads/lgn_spks_new.nwb'
     f = nwb.create_blank_file(input_spike_file_name, force=True)
 
     for i in range(num_trials):

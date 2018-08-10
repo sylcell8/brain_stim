@@ -264,14 +264,14 @@ def create_cell_vars_files(conf,gids):
             h5.attrs['tstart']=0.0
             h5.attrs['tstop']=tstop
      
-            h5.create_dataset('vm',(nsteps,),maxshape=(None,),chunks=True)
-            h5.create_dataset('cai',(nsteps,),maxshape=(None,),chunks=True)
-            h5.create_dataset('im', (nsteps,), maxshape=(None,), chunks=True)
+            h5.create_dataset('vm',(nsteps,),maxshape=(None,),chunks=True, dtype=np.float64)
+            h5.create_dataset('cai',(nsteps,),maxshape=(None,),chunks=True, dtype=np.float64)
+            h5.create_dataset('im', (nsteps,), maxshape=(None,), chunks=True, dtype=np.float64)
             # if conf["run"]["extra_stim"]:
-            h5.create_dataset('vext', (nsteps,), maxshape=(None,), chunks=True)
-            h5.create_dataset('EX', (nsteps,), maxshape=(None,), chunks=True)
+            h5.create_dataset('vext', (nsteps,), maxshape=(None,), chunks=True, dtype=np.float64)
+            h5.create_dataset('EX', (nsteps,), maxshape=(None,), chunks=True, dtype=np.float64)
 
-            h5.create_dataset('spikes',(0,),maxshape=(None,), chunks=True)
+            h5.create_dataset('spikes',(0,),maxshape=(None,), chunks=True, dtype=np.float64)
      
             if conf["run"]["calc_ecp"]: # then also create a dataset for the ecp
                 nsites =  conf['run']['nsites']
