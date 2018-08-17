@@ -104,7 +104,8 @@ class StimXElectrode():
                 rel_05 = rel - r05
                 r2 = np.einsum('ij,ij->j', rel_05, rel_05)
                 r = np.sqrt(r2)
-                if (all(i >= 10 for i in r) == False):
+                r[r <2] = 2
+                if (all(i >= 2 for i in r) == False):
                     bionet_io.print2log0('ERROR:External electrode is too close')
                     sys.exit()
                 cell_map[el, :] += 1. / r
@@ -118,10 +119,7 @@ class StimXElectrode():
         # copies waveform elnsites times (homogeneous)
         self.waveform_amplitude = np.zeros(self.elnsites) + self.waveform.calculate(simulation_time)
 
-
-
     def get_vext(self, gid):
-
           waveform_per_mesh = np.divide(self.waveform_amplitude, self.el_mesh_size)
           v_extracellular = np.dot(waveform_per_mesh, self.trans_X[gid]) * 1E6
           vext_vec = h.Vector(v_extracellular)

@@ -88,7 +88,11 @@ class BioCell(Cell):
         self.seg_coords['p0'] = self.pos_soma + np.dot(RotYZ,morph_seg_coords['p0'])  # rotated coordinates around z axis first then shift relative to the soma
         self.seg_coords['p1'] = self.pos_soma + np.dot(RotYZ,morph_seg_coords['p1'])
         self.seg_coords['p05'] = self.pos_soma + np.dot(RotYZ, morph_seg_coords['p05'])
-
+        # count = 0
+        # for i in range(len(self.seg_coords['p05'][0])):
+        #     if count == 0:
+        #         print self.seg_coords['p05'][0][i], self.seg_coords['p05'][1][i], self.seg_coords['p05'][2][i]
+        #     count = count + 1
 
     def set_morphology(self,morph):
 
