@@ -25,13 +25,14 @@ If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 
 def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, include_delta_vm=True,
                  include_sin=True, include_vm_phase_analysis=True, include_vext_phase_analysis=True,
-                 include_vi_phase_analysis=True, include_spike_phase=True, saved_data=False):
+                 include_vi_phase_analysis=True, include_spike_phase=True, include_sta=True, saved_data=False):
     cell_csv_pattern = '/*_cel[ls]*csv'
     cell_out_dir = ru.get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data)
     include_iclamp = input_type == InputType.EXTRASTIM_INTRASTIM
     additional_cols = ru.resolve_additional_cols(include_delta_vm, include_sin, include_iclamp,
                                                  include_vm_phase_analysis, include_vext_phase_analysis,
-                                                 include_vi_phase_analysis, include_spike_phase)
+                                                 include_vi_phase_analysis, include_spike_phase,
+                                                 include_sta)
     print additional_cols
     print "Iclamp and stimx have the same delay and dur"
     for amp in inputs:
@@ -102,7 +103,8 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, inc
                 if include_spike_phase:
                     spike_threshold_data = extract_spike_threshold_t(cvh5)
                     spike_phase_data = extract_spike_phase('vext', cvh5, ex_delay, ex_dur)
-                    spike_threshold_phase_data = [spike_threshold_data] + [spike_phase_data]
+                    sta_data = compute_STA(cvh5, fq)
+                    spike_threshold_phase_data = [spike_threshold_data] + [spike_phase_data] + [sta_data]
                     data = data + [spike_threshold_phase_data]
 
                 table.loc[run_id] = list(itertools.chain.from_iterable(data))
@@ -128,7 +130,8 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, inc
                                                'has_vm_phase_analysis':include_vm_phase_analysis,
                                                'has_vext_phase_analysis': include_vext_phase_analysis,
                                                'has_vi_phase_analysis': include_vi_phase_analysis,
-                                               'has_spike_phase_analysis': include_spike_phase})
+                                               'has_spike_phase_analysis': include_spike_phase,
+                                               'has_sta_analysis': include_sta})
         
         print 'Done.'
 
@@ -251,6 +254,33 @@ def extract_vm_data(cvh5, stim_type, ex_delay, ex_dur, **kwargs):
         vm_stim = np.NaN
 
     return [vm_rest, vm_stim, (vm_stim - vm_rest)]
+
+
+def compute_STA(cvh5, fq):
+    dt = cvh5.attrs['dt']
+    spike_threshold_time = extract_spike_threshold_t(cvh5)
+    vext = cvh5['vext'].value
+
+    # Windows from Costas' paper
+    if fq == 1:
+        window = 1
+    elif fq == 8:
+        window = 0.5
+    elif fq == 30:
+        window = 0.1
+    else:
+        window = 1./fq
+
+    window = window * 1000
+    traces = []
+    for time in spike_threshold_time:
+        beg_trace = (time - window) / dt
+        end_trace = (time + window) / dt
+        traces.append(vext[int(round(beg_trace)):int(round(end_trace))])
+    traces = np.array(traces)
+    mean_trace = np.mean(traces, axis=0)
+
+    return mean_trace
 
 
 def build_dc(cell_gid, ex_inputs, input_type, stim_type, model_type, trial):
