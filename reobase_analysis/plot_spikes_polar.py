@@ -53,11 +53,13 @@ def plot_polar_histogram_grid_sampled(gid_list, input_type, stim_type, model_typ
     spikes_data = pd.DataFrame(columns=['fq', 'distance', 'p_value', 'v_length', 'v_angle', 
     	                                'n_spikes', 'v_length_std'])
     
+    # Makes a grid to place the polar histograms in
     fig, axs = plt.subplots(len(fq_list), len(d_list), figsize=(20, 12), facecolor='w', edgecolor='k', subplot_kw=dict(polar=True))
     fig.subplots_adjust(hspace = 1.05, wspace=.0001)
     if len(fq_list) or len(d_list) > 1:
         axs = axs.ravel()
     
+    # Generate a single concatenated table for all the cells in gid_list with the spike analysis columns
     table = generate_spike_analysis_table(gid_list, input_type, stim_type, model_type, inputs, trial)
     
     for i, (fq,d) in enumerate([[fq,d] for fq in fq_list for d in d_list]):
