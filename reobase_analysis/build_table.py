@@ -517,6 +517,33 @@ def extract_vm_data(cvh5_for_vm_trace, stim_type, ex_delay, ex_dur, **kwargs):
     return [vm_rest, vm_stim, (vm_stim - vm_rest)]
 
 
+def compute_STA(cvh5, fq):
+    dt = cvh5.attrs['dt']
+    spike_threshold_time = extract_spike_threshold_t(cvh5)
+    vext = cvh5['vext'].value
+
+    # Windows from Costas' paper
+    if fq == 1:
+        window = 1
+    elif fq == 8:
+        window = 0.5
+    elif fq == 30:
+        window = 0.1
+    else:
+        window = 1./fq
+
+    window = window * 1000
+    traces = []
+    for time in spike_threshold_time:
+        beg_trace = (time - window) / dt
+        end_trace = (time + window) / dt
+        traces.append(vext[int(round(beg_trace)):int(round(end_trace))])
+    traces = np.array(traces)
+    mean_trace = np.mean(traces, axis=0)
+
+    return mean_trace
+
+
 def build_dc(cell_gid, ex_inputs, input_type, stim_type, model_type, trial):
     cell_csv_pattern = '/*_cel[ls]*csv'  # ridiculous pattern matching for old files called 1_cell.csv vs new ones called [gid].csv
     cell_out_dir = ru.get_output_dir(stim_type, model_type, cell_gid)

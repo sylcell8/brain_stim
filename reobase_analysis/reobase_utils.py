@@ -338,9 +338,10 @@ vm_phase_analysis_cols = ['vm_amp', 'vm_phase']
 vext_phase_analysis_cols = ['vext_amp', 'vext_phase']
 vi_phase_analysis_cols = ['vi_amp', 'vi_phase']
 spike_phase_analysis_cols = ['spike_threshold_t', 'spike_phase']
+sta_cols = ['sta']
 
 def resolve_additional_cols(include_delta_vm, include_sin, include_iclamp, include_vm_phase_analysis,
-                            include_vext_phase_analysis, include_vi_phase_analysis, include_spike_phase):
+                            include_vext_phase_analysis, include_vi_phase_analysis, include_spike_phase, include_sta):
     """ Find all the additional columns for the table"""
     cols = []
 
@@ -358,6 +359,8 @@ def resolve_additional_cols(include_delta_vm, include_sin, include_iclamp, inclu
         cols = cols + vi_phase_analysis_cols
     if include_spike_phase:
         cols = cols + spike_phase_analysis_cols
+    if include_sta:
+        cols = cols + sta_cols
 
     return cols
 
@@ -431,6 +434,8 @@ def read_table_h5(fpath):
         if 'has_spike_phase_analysis' in f5.attrs and f5.attrs['has_spike_phase_analysis']:
             extra_cols = extra_cols + spike_phase_analysis_cols
 
+        if 'has_sta_analysis' in f5.attrs and f5.attrs['has_sta_analysis']:
+            extra_cols = extra_cols + sta_cols
 
         table = build_df(extra_cols)
         un_touched_data_cols = (dc_cols + extra_cols)
@@ -438,34 +443,37 @@ def read_table_h5(fpath):
         ids = f5['ids'].value
         spike_data = f5['spikes']
 
-        if set(['spike_threshold_t', 'spike_phase']).issubset(un_touched_data_cols):
+        if set(['spike_threshold_t', 'spike_phase', 'sta']).issubset(un_touched_data_cols):
             spike_threshold_t_data = f5['spike_threshold_t']
             spike_phase_data = f5['spike_phase']
+            sta_data = f5['sta']
 
         for i, rid in enumerate(ids):  # i is key for f5 dsets, rid is key for spikes & df
             data_cols = (dc_cols + extra_cols)
             spike_index = data_cols.index('spikes')
 
-            if set(['spike_threshold_t','spike_phase']).issubset(data_cols):
+            if set(['spike_threshold_t','spike_phase', 'sta']).issubset(data_cols):
                 spike_threshold_t_index = data_cols.index('spike_threshold_t')
                 spike_phase_index = data_cols.index('spike_phase')
-
+                sta_index = data_cols.index('sta')
 
             data_cols.pop(spike_index)
-            if set(['spike_threshold_t', 'spike_phase']).issubset(data_cols):
+            if set(['spike_threshold_t', 'spike_phase', 'sta']).issubset(data_cols):
                 new_spike_threshold_t_index = data_cols.index('spike_threshold_t')
                 data_cols.pop(new_spike_threshold_t_index)
                 new_spike_phase_index = data_cols.index('spike_phase')
                 data_cols.pop(new_spike_phase_index)
+                new_sta_index = data_cols.index('sta')
+                data_cols.pop(new_sta_index)
 
 
             data = [f5[c][i] for c in data_cols]
             # place spikes in correct position
             data.insert(spike_index, spike_data[rid].value)
-            if set(['spike_threshold_t','spike_phase']).issubset(un_touched_data_cols):
+            if set(['spike_threshold_t','spike_phase', 'sta']).issubset(un_touched_data_cols):
                 data.insert(spike_threshold_t_index, spike_threshold_t_data[rid].value)
                 data.insert(spike_phase_index, spike_phase_data[rid].value)
-
+                data.insert(sta_index, sta_data[rid].value)
             table.loc[rid] = data
 
     return table
@@ -477,7 +485,7 @@ def write_table_h5(fpath, df, attrs=None):
     with h5.File(fpath, 'w') as f5:
         f5.create_dataset('ids', data=map(str, df.index))
         for col in df.columns:
-            if col not in ['spikes', 'spike_threshold_t', 'spike_phase']: # cuz it will explode if it is type 'object'
+            if col not in ['spikes', 'spike_threshold_t', 'spike_phase', 'sta']: # cuz it will explode if it is type 'object'
                 f5.create_dataset(col, data=df[col])
 
         spike_grp = f5.create_group('spikes')
@@ -485,15 +493,19 @@ def write_table_h5(fpath, df, attrs=None):
             spike_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=spike_times)
 
 
-        if set(['spike_threshold_t', 'spike_phase']).issubset(df.columns):
+        if set(['spike_threshold_t', 'spike_phase', 'sta']).issubset(df.columns):
             spike_threshold_t_grp = f5.create_group('spike_threshold_t')
             spike_phase_grp = f5.create_group('spike_phase')
+            sta_grp = f5.create_group('sta')
 
             for (rid, s_t_t) in df.spike_threshold_t.iteritems():
                 spike_threshold_t_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=s_t_t)
         #
             for (rid, s_p) in df.spike_phase.iteritems():
                 spike_phase_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=s_p)
+
+            for (rid, sta_p) in df.sta.iteritems():
+                sta_grp.create_dataset(rid, maxshape=(None,), chunks=True, data=sta_p)
 
         if attrs is not None:
             for k,v in attrs.iteritems():
