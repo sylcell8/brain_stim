@@ -4,259 +4,26 @@ import pandas as pd
 import itertools
 import allensdk
 import reobase_analysis.reobase_utils as ru
-import reobase_analysis.exper_utils as xu
-import isee_engine.bionet.config as config
 import reobase_analysis.sin_utils as su
 from scipy.signal import hilbert, chirp
-from reobase_analysis.exper_utils import ElectrodeType
 from reobase_analysis.reobase_utils import StimType, ModelType, InputType
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory
 from isee_engine.bionet.stimxwaveform import iclamp_waveform_factory
 from allensdk.ephys.ephys_extractor import EphysSweepFeatureExtractor
-from neuroanalysis.miesnwb import MiesNwb
-
-#import cProfile, pstats, io
-#pr = cProfile.Profile()
-#pr.enable()
 
 """
 Script to build h5 files containing organized run info for all runs of a particular amplitude
 Will include all electrodes. Has no overwrite protection.
 
-Will attempt to include vm information if the stim type is DC. This is only done for DC because it only makes sense for 
+Will attempt to include vm information if the stim type is DC. This is only done for DC because it only makes sense for
 a constant input without external input. This allows us to look at the subthreshold response.
 If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 """
 
-def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_data = False, include_ex_stimulus_data = True,
-                     include_in_stimulus_data = True, include_vext_phase_analysis = True,
-                     include_vi_phase_analysis = True, include_spike_phase = True):
+def bandpass_filter():
 
-    experimental_cols = xu.resolve_additional_cols(include_ex_stimulus_data, include_in_stimulus_data,
-                                                   include_vext_phase_analysis, include_vi_phase_analysis,
-                                                   include_spike_phase)
-    print "Building table for experiment:{}_{}".format(exp_id, sampling_freq)
-    table = xu.build_df(experimental_cols)
-    # print experimental_cols
-    original_config = xu.get_config_path(exp_id, sampling_freq, saved_data)
-    config.print_resolved(config.build(original_config))
-    resolved_config_path = xu.get_config_resolved_path(exp_id, sampling_freq, saved_data)
-    conf = config.build(resolved_config_path)
+    pass
 
-    ex_el = xu.get_el_prop(conf, ElectrodeType.EXTRA)
-    if (len(ex_el['id']) != len(ex_el['distance'])):
-        raise ValueError('For each ex electrode, you should provide a distance')
-
-    in_el = xu.get_el_prop(conf, ElectrodeType.INTRA)
-    in_el_id = in_el['id']
-
-    stim_el = xu.get_el_prop(conf, ElectrodeType.STIM)
-    stim_el_id = stim_el['id']
-
-    nwb_file_name = xu.get_nwb_filename(exp_id, sampling_freq)
-    nwb_file = "/".join([xu.get_nwb_dir(conf), nwb_file_name])
-    nwb = MiesNwb(nwb_file)
-
-    sweeps = conf['sweep_numbers']
-
-    for sweep in sweeps:
-        subthreshold = True
-        control = False
-        ####### extract the extracellular and intracellular injection properties #######
-        in_amp, in_frequency, in_delay, in_dur = extract_stimulus_prop(nwb, conf, sweep, in_el_id, stimulus_type="in")
-        ex_amp, ex_frequency, ex_delay, ex_dur =  extract_stimulus_prop(nwb, conf, sweep, stim_el_id, stimulus_type = "ex")
-        if ex_frequency == 0 :
-            control = True
-        total_sweep_time = nwb.contents[sweep][stim_el_id]['primary'].duration
-        total_sweep_length = total_sweep_time /(1./(sampling_freq * 1000))
-        sweep_time_array = extract_timeseries_of_experiment(total_sweep_time, sampling_freq) # in sec
-        dt = (sweep_time_array[1] - sweep_time_array[0]) * 1000 #in ms
-        ex_delay = ex_delay * 1000 #in ms
-        ex_dur = ex_dur * 1000 # in ms
-        in_delay = in_delay * 1000 #in ms
-        in_dur = in_dur * 1000 # in ms
-        vi_trace = nwb.contents[sweep][in_el_id]['primary'].data * 1000. # in mV
-        if (len(vi_trace) != total_sweep_length):
-            raise ValueError('vi_trace should have a lenght of {}'.format(total_sweep_length))
-        spike_tt = extract_spike_threshold_t_expr(sweep_time_array, vi_trace)
-
-        # # Decide to perform sub or supra analysis
-        if len(spike_tt) > 0:
-            subthreshold = False
-
-        vext_trace = {}
-        i = 0
-        for exel in ex_el['id']:
-            distance = ex_el['distance'][i]
-            signal = nwb.contents[sweep][exel]['primary'].data * 1000 # in mV
-            vext_trace[distance] = su.bandpass_filter(signal, lowcut_freq, highcut_freq, dt / 1000.) # dt should be in sec
-            if (len(vext_trace[distance]) != total_sweep_length):
-                raise ValueError('vext_trace should have a lenght of {}'.format(total_sweep_length))
-            i += 1
-
-            run_id = xu.resolve_run_id(sweep, exel, ex_amp, ex_frequency, in_amp)
-            try:
-                data = [[sweep, exel, stim_el_id, in_el_id, distance], [spike_tt]]
-
-                if include_ex_stimulus_data:
-                    data = data + [[ex_amp, ex_frequency, ex_dur, ex_delay]]
-
-                if include_in_stimulus_data:
-                    data = data + [[in_amp, in_dur, in_delay]]
-
-                if include_vext_phase_analysis:
-                    vext_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vext', vext_trace[distance], ex_delay, ex_dur, ex_frequency, dt)
-                    data = data + [vext_phase_analysis_data]
-
-                if include_vi_phase_analysis:
-                    vi_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vi', vi_trace,  ex_delay, ex_dur, ex_frequency, dt)
-                    data = data + [vi_phase_analysis_data]
-
-                if include_spike_phase:
-                    spike_phase_data = extract_spike_phase_expr(subthreshold, spike_tt, vext_trace[distance], ex_delay, ex_dur, dt)
-                    data = data + [spike_phase_data]
-
-                table.loc[run_id] = list(itertools.chain.from_iterable(data))
-
-            except:
-                print run_id
-                raise
-
-    if include_vext_phase_analysis:
-            table.loc[table["vi_phase"] < 0, "vi_phase"] = table["vi_phase"] + 360
-            table.loc[table["vext_phase"] < 0, "vext_phase"] = table["vext_phase"] + 360
-    #     if control_simulation:
-    #         filename = ru.get_control_table_filename(cell_gid, amp,trial)
-    #     else:
-    filename = xu.get_table_filename(exp_id, sampling_freq)
-    print 'Data collected. Writing to {}...'.format(filename)
-    fpath = xu.get_table_dir(filename, saved_data)
-    print "writing to:" , fpath
-    xu.write_table_h5(fpath, table, attrs={'has_ex_stimulus_data':include_ex_stimulus_data,
-                                            'has_in_stimulus_data': include_in_stimulus_data,
-                                            'include_vext_phase_analysis': include_vext_phase_analysis,
-                                            'include_vi_phase_analysis':include_vi_phase_analysis,
-                                            'include_spike_phase':include_spike_phase})
-
-    print 'Done.'
-
-
-def extract_timeseries_from_h5(cvh5, var):
-    voltage = cvh5[var].value
-    dt = cvh5.attrs['dt']
-    tstop = cvh5.attrs['tstop']
-    time = np.arange(0,tstop,dt)
-    time = time / 1000.
-    return time , voltage
-
-def extract_timeseries_of_experiment(total_sweep_time, sampling_freq):
-    dt = 1. / (sampling_freq * 1000)
-    time = np.arange(0, total_sweep_time, dt)
-    return time
-
-
-
-def extract_v_phase_analysis_expr(subthreshold, control, var_name ,var_trace, ex_delay, ex_dur, freq, dt):
-    'This is subthreshold only analyis. When the cell is spiking this value is equal to NaN\
-    We cut the first 4s and the final 2s for fitting the sinusoid'
-    # spikes = cvh5_for_vm_trace['spikes'].value
-    if control:
-        return [np.NaN, np.NaN]
-
-    if subthreshold or var_name == 'vext':
-        var_amp, var_phase, var_mean = su.fit_sin(var_trace, ex_delay, ex_dur, freq, dt)
-    else:
-        var_amp = np.NaN
-        var_phase = np.NaN
-
-    return [var_amp, var_phase]
-
-
-def extract_spike_threshold_t_expr(time, var_timeseries):
-    spike_threshold_t = []
-
-    if np.isnan(var_timeseries).any():
-        print "Nan values in the trace"
-    else:
-        sweep = EphysSweepFeatureExtractor(t=time, v=var_timeseries, start=0, end=time[-1])
-        sweep.process_spikes()
-        all_spike_features = sweep.spike_feature_keys()
-
-        if len(all_spike_features) > 0:
-            features_dict = {}
-            for j in range(0, len(all_spike_features)):
-                features_dict[all_spike_features[j]] = sweep.spike_feature(all_spike_features[j])
-            spike_threshold_t = [i * 1000 for i in features_dict['threshold_t'].tolist()]
-
-    return spike_threshold_t
-
-def extract_stimulus_prop(nwb, conf, sweep, el_id, stimulus_type):
-    stimulus_description = nwb.contents[sweep][el_id].stimulus.description
-    BB = conf['stimulus description'][str(stimulus_description)]
-    amp = nwb.contents[sweep][el_id].stimulus.items[BB].amplitude  # in nanoamp
-    frequency = None
-
-    if stimulus_type == "ex":
-        amp = amp * 1e9
-        if hasattr(nwb.contents[sweep][el_id].stimulus.items[BB], 'frequency'):
-            frequency = nwb.contents[sweep][el_id].stimulus.items[BB].frequency
-        else:
-            frequency = 0
-    if stimulus_type == "in":
-        amp = amp * 1e12
-        if hasattr(nwb.contents[sweep][el_id].stimulus.items[BB], 'frequency'):
-            raise ValueError('Intracellular injection can not jave frequency attr')
-
-    delay = nwb.contents[sweep][el_id].stimulus.items[BB].global_start_time
-    dur = nwb.contents[sweep][el_id].stimulus.items[BB].duration
-
-    return amp, frequency, delay, dur
-
-def hilbert_transform_expr(var_trace, ex_delay, ex_dur,dt):
-    'We compute the hilbert transform for the whole period when extra_stim is applied. After making the table\
-    then we can cut the first and last 2s. But the table is build for the whole period of ex_stim applied'
-    # dt = cvh5_for_vext_trace.attrs['dt']
-    # var = cvh5_for_vext_trace[varname].value
-    var = var_trace
-    t_start = int((ex_delay) / dt)
-    t_end = int((ex_delay + ex_dur) / dt)
-    var = var[t_start:t_end]
-    n_points = int(1. / (dt * (0.001))) #Number of data points in 1second
-
-    analytic_var = hilbert(var)
-    amplitude_envelope_var = np.abs(analytic_var)
-    instantaneous_phase_var = np.unwrap(np.angle(analytic_var))
-    phase_var = [(x / (2.0 * np.pi) - int(x / (2.0 * np.pi))) * 2.0 * np.pi - np.pi for x in instantaneous_phase_var]
-    instantaneous_frequency_var = (np.diff(instantaneous_phase_var) / (2.0 * np.pi) * n_points)
-
-    return phase_var, amplitude_envelope_var, instantaneous_frequency_var
-
-def extract_spike_phase_expr(subthreshold, spike_tt, var_trace, ex_delay, ex_dur, dt):
-    'We compute the spike phase for all the spikes from the beggining to end. After we build the table, then we can decide\
-    which time window we keep for analyis. But as of now, we copute the spike phase for all the spikes'
-    # spikes = cvh5_for_vm_trace['spikes'].value
-
-    if subthreshold:
-        spike_phase = []
-    else:
-        t_start = ex_delay
-        t_end = ex_delay + ex_dur
-        time = np.arange(t_start, t_end, dt)
-
-        spike_threshold_time = spike_tt
-        phase_var, amplitude_envelope_var, instantaneous_frequency_var = hilbert_transform_expr( var_trace, ex_delay, ex_dur, dt)
-
-        df = pd.DataFrame(columns=["spike_phase", 'time'])
-        df['spike_phase'] = phase_var
-        df["time"] = time
-
-        ndx = []
-        for t in spike_threshold_time:
-            ndx = ndx + (df[(df['time'] > (t - 0.000001)) & (df['time'] < (t + 0.000001))].index.tolist())
-
-        spike_phase = [df.loc[index]['spike_phase'] for index in ndx]
-
-    return [spike_phase]
 
 
 def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, include_delta_vm=True,
@@ -378,8 +145,6 @@ def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, inc
         print 'Done.'
 
 
-
-
 def extract_spike_threshold_t(cvh5_for_vm_trace):
     'We use Allensdk spike feature extractor to find the spike threshold time'
     spikes = cvh5_for_vm_trace['spikes'].value
@@ -403,23 +168,6 @@ def extract_spike_threshold_t(cvh5_for_vm_trace):
         spike_threshold_t = features_dict['threshold_t']*1000.
 
     return spike_threshold_t
-
-# def hilbert_transform(time, var_timeseries, ex_delay, ex_dur):
-#     'We compute the hilbert transform for the whole period when extra_stim is applied. After making the table\
-#     then we can cut the first and last 2s. But the table is build for the whole period of ex_stim applied'
-#     dt = (time[1]- time[0]) / 1000.
-#     t_start = int((ex_delay) / dt)
-#     t_end = int((ex_delay + ex_dur) / dt)
-#     var = var_timeseries[t_start:t_end]
-#     n_points = int(1. / (dt * (0.001))) #Number of data points in 1second
-#
-#     analytic_var = hilbert(var)
-#     amplitude_envelope_var = np.abs(analytic_var)
-#     instantaneous_phase_var = np.unwrap(np.angle(analytic_var))
-#     phase_var = [(x / (2.0 * np.pi) - int(x / (2.0 * np.pi))) * 2.0 * np.pi - np.pi for x in instantaneous_phase_var]
-#     instantaneous_frequency_var = (np.diff(instantaneous_phase_var) / (2.0 * np.pi) * n_points)
-#
-#     return phase_var, amplitude_envelope_var, instantaneous_frequency_var
 
 
 def hilbert_transform(varname, cvh5_for_vext_trace, ex_delay, ex_dur):
@@ -558,4 +306,3 @@ def build_dc(cell_gid, ex_inputs, input_type, stim_type, model_type, trial):
         fpath = ru.get_table_dir(stim_type, model_type, filename)
         ru.write_table_h5(fpath, table, attrs={'has_vm_data':include_delta_vm,'vm_rest': vm_rest})
         print 'Done.'
-

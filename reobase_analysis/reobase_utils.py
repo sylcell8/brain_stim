@@ -135,6 +135,11 @@ def get_output_dir(input_type, stim_type, model_type, cell_gid, saved_data, *arg
     reobase_dir = get_reobase_dir(saved_data)
     return concat_path(reobase_dir, 'Run_folder/outputs/', input_type, stim_type, model_type, cell_gid, *args)
 
+def get_intrastim_output_dir(cell_gid, input_type, stim_type, model_type, ic_amp, trial, saved_data):
+    root_dir = get_output_dir(input_type , stim_type, model_type, cell_gid, saved_data)
+    out_dir = get_intrastim_dir_name(ic_amp, trial)
+    return concat_path(root_dir, out_dir)
+
 def get_electrode_path(electrodes_dir, gid, el):
     return concat_path(electrodes_dir, str(gid) + '_' + format_el(el) + '.csv')
 
@@ -174,6 +179,15 @@ def get_dir_name(el, amp, freq=None, ic_amp=None, trial =0):
 #         get_sin_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, trial)
 #     if stim_type == "sin_dc":
 #         get_sin_dc_output_dir(cell_gid, input_type, stim_type, model_type, el, amp, freq, ic_amp, trial)
+
+### INTRASTIM_DC ###
+
+def resolve_intrastim_dc_key(icamp):
+    parts = ['icamp' + format_icamp(icamp)]
+    return "_".join(parts)
+
+def get_intrastim_dir_name(icamp, trial):
+    return '_'.join([resolve_intrastim_dc_key(icamp), 'tr' + str(trial)])
 
 
 ### SIN_DC ###
@@ -231,6 +245,9 @@ def get_table_dir(input_type, stim_type, model_type, *args):
 
 def get_table_filename(cell_gid, amp,trial):
     return 'table_{}_amp{}_tr{}.h5'.format(cell_gid, format_amp(amp), trial)
+
+def get_control_table_filename(cell_gid, amp,trial):
+    return 'control_table_{}_amp{}_tr{}.h5'.format(cell_gid, format_amp(amp), trial)
 
 ### Modulation_tables ###
 def get_analysis_dir(input_type, stim_type, model_type, *args):
@@ -485,11 +502,14 @@ def write_table_h5(fpath, df, attrs=None):
 
 
 def read_cell_tables(cell_gid, amp_range, input_type, stim_type, model_type, trial,
-                     data_dir=None):
+                     control = False, data_dir=None):
     """ Read h5 files for a set of amplitudes """
     # print "Fetching data..."
     data_dir = get_table_dir(input_type, stim_type, model_type) if data_dir is None else data_dir
-    paths = [concat_path(data_dir, get_table_filename(cell_gid, a, trial)) for a in amp_range]
+    if control:
+        paths = [concat_path(data_dir, get_control_table_filename(cell_gid, a, trial)) for a in amp_range]
+    else:
+        paths = [concat_path(data_dir, get_table_filename(cell_gid, a, trial)) for a in amp_range]
 
     t = build_df()  # do this for code analysis
     t = t.append([read_table_h5(p) for p in paths])

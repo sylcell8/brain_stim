@@ -744,3 +744,49 @@ def plot_3d_colorbar_transparent2(merged_table, xcol, zcol, zcol1, cbar_min, cba
     ax.tick_params(labelsize=35)
     plt.gca().invert_yaxis()
     return ax
+
+
+################################################
+
+#                  FFT                         #
+
+#################################################
+
+def plot_fft(sig_fft, sample_freq , ax=None):
+    if ax is None:
+        ax = plt.figure(figsize=(20,5))
+        ax = plt.subplot(111)
+
+    sorted_sig_fft = np.asarray([x for _,x in sorted(zip(sample_freq, sig_fft))])
+    sorted_sampling_freq = np.sort(sample_freq)
+    power = np.abs(sorted_sig_fft)
+    ax.semilogy(sorted_sampling_freq, np.abs(power), label='fft')
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('semilog power')
+    ax.set_xlim(-110,110)
+    ax.legend(loc='best')
+    return ax
+
+
+################################################
+
+#                  NWB                         #
+
+#################################################
+
+def plot_nwb_trace(v_trace, sampling_freq, title=None, ax=None):
+    if ax is None:
+        ax = plt.figure(figsize=(20,5))
+        ax = plt.subplot(111)
+
+    N = len(v_trace)
+    dt = 1. / (sampling_freq * 1000)
+    tstop = N * dt
+    time = np.arange(0, tstop, dt)
+    ax.plot(time, v_trace)
+    ax.set_xlabel('Time(s)', size=15)
+    ax.set_ylabel('Voltage(mV)', size =15)
+    ax.legend(loc='best')
+    if title:
+        ax.set_title(title, size= 20)
+    return ax
