@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import glob
 import numpy as np
 import pandas as pd
@@ -58,6 +63,7 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
     nwb = MiesNwb(nwb_file)
 
     sweeps = conf['sweep_numbers']
+    control_sweeps = conf['control_sweep_numbers']
 
     for sweep in sweeps:
         subthreshold = True
@@ -65,8 +71,15 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
         ####### extract the extracellular and intracellular injection properties #######
         in_amp, in_frequency, in_delay, in_dur = extract_stimulus_prop(nwb, conf, sweep, in_el_id, stimulus_type="in")
         ex_amp, ex_frequency, ex_delay, ex_dur =  extract_stimulus_prop(nwb, conf, sweep, stim_el_id, stimulus_type = "ex")
-        if ex_frequency == 0 :
+
+        if ex_amp == 0 :
             control = True
+            if not sweep in control_sweeps: raise ValueError('it is a control sweep but its number is not inside the control list. Check sweep: {}'.format(sweep))
+            related_sweeps = get_related_sweeps_to_control(sweep, sweeps)
+            print "For control sweep:", sweep, "these are related sweeps with different frequencies:", related_sweeps
+        else:
+            related_sweeps = [sweep]
+
         total_sweep_time = nwb.contents[sweep][stim_el_id]['primary'].duration
         total_sweep_length = total_sweep_time /(1./(sampling_freq * 1000))
         sweep_time_array = extract_timeseries_of_experiment(total_sweep_time, sampling_freq) # in sec
@@ -79,55 +92,49 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
         if (len(vi_trace) != total_sweep_length):
             raise ValueError('vi_trace should have a lenght of {}'.format(total_sweep_length))
         spike_tt = extract_spike_threshold_t_expr(sweep_time_array, vi_trace)
+        spike_tt= [stt for stt in spike_tt if (stt >= ex_delay) & (stt <= ex_delay + ex_dur)] # Discard all the spikes before and after extracellular injection
+
 
         # # Decide to perform sub or supra analysis
         if len(spike_tt) > 0:
             subthreshold = False
 
-        vext_trace = {}
         i = 0
         for exel in ex_el['id']:
             distance = ex_el['distance'][i]
-            signal = nwb.contents[sweep][exel]['primary'].data * 1000 # in mV
-            vext_trace[distance] = su.bandpass_filter(signal, lowcut_freq, highcut_freq, dt / 1000.) # dt should be in sec
-            if (len(vext_trace[distance]) != total_sweep_length):
-                raise ValueError('vext_trace should have a lenght of {}'.format(total_sweep_length))
+            for s in related_sweeps:
+                sweep_for_vext = s
+                signal = nwb.contents[sweep_for_vext][exel]['primary'].data * 1000 # in mV
+                vext_trace = su.bandpass_filter(signal, lowcut_freq, highcut_freq, dt / 1000.) # dt should be in sec
+                run_id = xu.resolve_run_id(sweep, exel, ex_amp, ex_frequency, in_amp)
+
+                if sweep != s: # We just update the run_id and frequency
+                    aa, ex_frequency, bb, cc = extract_stimulus_prop(nwb, conf, s, stim_el_id,stimulus_type="ex")
+                    run_id = xu.resolve_run_id(sweep, exel, ex_amp, ex_frequency, in_amp)
+                    run_id = str(s) + "_" + run_id
+
+                if (len(vext_trace) != total_sweep_length):
+                    raise ValueError('vext_trace should have a lenght of {}'.format(total_sweep_length))
+
+
+                try:
+                    data = write_data_rows(sweep, exel, stim_el_id, in_el_id, distance, spike_tt, ex_amp, ex_frequency,
+                                       ex_dur, ex_delay , in_amp,in_dur, in_delay,subthreshold, control,vext_trace,dt,
+                                       vi_trace, include_ex_stimulus_data, include_in_stimulus_data, include_vext_phase_analysis,
+                                       include_vi_phase_analysis, include_spike_phase)
+
+
+                    table.loc[run_id] = list(itertools.chain.from_iterable(data))
+
+                except:
+                    print run_id
+                    raise
             i += 1
-
-            run_id = xu.resolve_run_id(sweep, exel, ex_amp, ex_frequency, in_amp)
-            try:
-                data = [[sweep, exel, stim_el_id, in_el_id, distance], [spike_tt]]
-
-                if include_ex_stimulus_data:
-                    data = data + [[ex_amp, ex_frequency, ex_dur, ex_delay]]
-
-                if include_in_stimulus_data:
-                    data = data + [[in_amp, in_dur, in_delay]]
-
-                if include_vext_phase_analysis:
-                    vext_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vext', vext_trace[distance], ex_delay, ex_dur, ex_frequency, dt)
-                    data = data + [vext_phase_analysis_data]
-
-                if include_vi_phase_analysis:
-                    vi_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vi', vi_trace,  ex_delay, ex_dur, ex_frequency, dt)
-                    data = data + [vi_phase_analysis_data]
-
-                if include_spike_phase:
-                    spike_phase_data = extract_spike_phase_expr(subthreshold, spike_tt, vext_trace[distance], ex_delay, ex_dur, dt)
-                    data = data + [spike_phase_data]
-
-                table.loc[run_id] = list(itertools.chain.from_iterable(data))
-
-            except:
-                print run_id
-                raise
 
     if include_vext_phase_analysis:
             table.loc[table["vi_phase"] < 0, "vi_phase"] = table["vi_phase"] + 360
             table.loc[table["vext_phase"] < 0, "vext_phase"] = table["vext_phase"] + 360
-    #     if control_simulation:
-    #         filename = ru.get_control_table_filename(cell_gid, amp,trial)
-    #     else:
+
     filename = xu.get_table_filename(exp_id, sampling_freq)
     print 'Data collected. Writing to {}...'.format(filename)
     fpath = xu.get_table_dir(filename, saved_data)
@@ -139,6 +146,38 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
                                             'include_spike_phase':include_spike_phase})
 
     print 'Done.'
+
+
+def write_data_rows(sweep, exel, stim_el_id, in_el_id, distance, spike_tt, ex_amp, ex_frequency, ex_dur, ex_delay , in_amp,
+                    in_dur, in_delay,subthreshold, control,vext_trace,dt, vi_trace, include_ex_stimulus_data, include_in_stimulus_data,
+                    include_vext_phase_analysis, include_vi_phase_analysis, include_spike_phase):
+
+    data = [[sweep, exel, stim_el_id, in_el_id, distance], [spike_tt]]
+    if include_ex_stimulus_data:
+        data = data + [[ex_amp, ex_frequency, ex_dur, ex_delay]]
+    if include_in_stimulus_data:
+        data = data + [[in_amp, in_dur, in_delay]]
+
+    if include_vext_phase_analysis:
+        vext_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vext', vext_trace, ex_delay,
+                                                                 ex_dur, ex_frequency, dt)
+        data = data + [vext_phase_analysis_data]
+
+    if include_vi_phase_analysis:
+        vi_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vi', vi_trace, ex_delay, ex_dur,
+                                                               ex_frequency, dt)
+        data = data + [vi_phase_analysis_data]
+
+    if include_spike_phase:
+        spike_phase_data = extract_spike_phase_expr(subthreshold, spike_tt, vext_trace, ex_delay, ex_dur, dt)
+        data = data + [spike_phase_data]
+
+    return  data
+
+
+def get_related_sweeps_to_control(control_sweep, sweeps):
+    ndx = sweeps.index(control_sweep)
+    return [sweeps[i] for i in [ndx+1, ndx+2, ndx+3, ndx+4]]
 
 
 def extract_timeseries_from_h5(cvh5, var):

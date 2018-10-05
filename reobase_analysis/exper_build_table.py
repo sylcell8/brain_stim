@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh
+# Date created: 9/1/2017
+######################################################
+
 import glob
 import numpy as np
 import pandas as pd

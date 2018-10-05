@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import reobase_analysis.tchelpers as tc
 import reobase_analysis.reobase_utils as ru
 from isee_engine.bionet.stimxwaveform import stimx_waveform_factory

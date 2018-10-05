@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import os, sys
 import math
 import glob
@@ -8,6 +13,7 @@ import pandas as pd
 from enum import Enum
 from neuroanalysis.miesnwb import MiesNwb
 import isee_engine.bionet.config as config
+import table_plot_helper as tpl
 
 """
 Many utils. Most are for building paths or file names or dealing with IO.
@@ -233,8 +239,12 @@ def read_table_h5(fpath):
 
             table.loc[rid] = data
         table['num_spikes'] = table.apply(lambda row: len(row['spike_tt']), axis=1)
-
+        table['spike_tt_A'] = table.apply(tpl.filter_list, varname1="spike_tt", varname2="spike_tt", axis=1)
+        table['spike_phase_A'] = table.apply(tpl.filter_list, varname1="spike_tt", varname2="spike_phase", axis=1)
+        table['num_spikes_A'] = table.apply(lambda row: len(row['spike_tt_A']), axis=1)
+        table['spike_phase_A_corrected'] = table.apply(tpl.phase_correction, axis=1)
     return table
+
 
 
 def read_table_from_exp_id(exp_id, sampling_freq, saved_data):
@@ -248,8 +258,8 @@ def read_trace_from_nwb(exp_id, sampling_freq,  sweep, el_id, saved_data):
     resolved_config_path = get_config_resolved_path(exp_id, sampling_freq, saved_data)
     nwb = MiesNwb(nwb_path)
     conf = config.build(resolved_config_path)
-    stimulus_description = nwb.contents[sweep][el_id].stimulus.description
-    BB = conf['stimulus description'][str(stimulus_description)]
+    #stimulus_description = nwb.contents[sweep][el_id].stimulus.description
+    #BB = conf['stimulus description'][str(stimulus_description)]
     v = nwb.contents[sweep][el_id]['primary'].data * 1000
     return  v
 

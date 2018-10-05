@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import matplotlib.pyplot as plt
 import reobase_utils as ru
 from reobase_analysis.reobase_utils import StimType

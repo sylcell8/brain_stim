@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt

@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import numpy as np
 import pandas as pd
 import matplotlib as mlb
@@ -790,3 +795,30 @@ def plot_nwb_trace(v_trace, sampling_freq, title=None, ax=None):
     if title:
         ax.set_title(title, size= 20)
     return ax
+
+
+def get_cut_window(in_amp, ex_delay, ex_dur):
+    if in_amp == 0:
+        t_start = ex_delay + 500
+        t_end = ex_delay + ex_dur - 1000
+    else:
+        t_start = ex_delay + 2500
+        t_end = ex_delay + ex_dur - 2000
+    return t_start, t_end
+
+
+def filter_list(row, **kwargs):
+    in_amp = row['in_amp(pA)']
+    ex_delay = row['ex_delay(ms)']
+    ex_dur = row['ex_dur(ms)']
+    t_start , t_end = get_cut_window(in_amp, ex_delay, ex_dur)
+    varname1 = kwargs['varname1']
+    varname2 = kwargs['varname2']
+    ndx = np.where((row[varname1] >= t_start) & (row[varname1] <= t_end))
+    l = [row[varname2][i] for i in ndx]
+    flat_list = [item for sublist in l for item in sublist]
+    return flat_list
+
+def phase_correction(row):
+    temp = [x + (1.5 * np.pi) for x in row['spike_phase_A']]
+    return [(x/(2*np.pi) - int(x/(2*np.pi))) * 2 * np.pi for x in temp]

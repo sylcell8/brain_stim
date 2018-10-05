@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import numpy as np
 import matplotlib as mlb
 import matplotlib.pyplot as plt

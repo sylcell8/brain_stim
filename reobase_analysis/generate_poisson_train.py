@@ -1,3 +1,8 @@
+######################################################
+# Authors: Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import isee_engine.nwb as nwb
 import poisson
 # import h5py

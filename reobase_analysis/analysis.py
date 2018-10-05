@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 """
 Place to hold analysis functions. 
 Any transformation / operation of the data tables would fit.

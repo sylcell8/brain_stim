@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import matplotlib.pyplot as plt
 import reobase_utils as r
 import analysis as ra

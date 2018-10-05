@@ -1,3 +1,8 @@
+######################################################
+# Authors: Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 import shutil
 import copy
 from reobase_utils import *

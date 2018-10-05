@@ -1,3 +1,8 @@
+######################################################
+# Authors: Fahimeh Baftizadeh, Taylor Connington
+# Date created: 9/1/2017
+######################################################
+
 from scipy.signal import hilbert, chirp
 import numpy as np
 import matplotlib.pyplot as plt
