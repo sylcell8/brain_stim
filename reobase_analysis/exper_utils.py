@@ -119,9 +119,11 @@ ex_stimulus_cols = ['ex_amp(nA)', 'ex_frequency', 'ex_dur(ms)', 'ex_delay(ms)']
 in_stimulus_cols = ['in_amp(pA)', 'in_dur(ms)', 'in_delay(ms)']
 vi_phase_analysis_cols = ['vi_amp(mV)', 'vi_phase']
 vext_phase_analysis_cols = ['vext_amp(mV)', 'vext_phase']
+vm_phase_analysis_cols = ['vm_amp(mV)', 'vm_phase', 'avg_vm(mV)']
 spike_phase_analysis_cols = ['spike_phase']
 
-def resolve_additional_cols(include_ex_stimulus, include_in_stimulus, include_vext_phase_analysis, include_vi_phase_analysis, include_spike_phase):
+def resolve_additional_cols(include_ex_stimulus, include_in_stimulus, include_vext_phase_analysis,
+                            include_vi_phase_analysis, include_spike_phase, include_vm_phase_analysis):
     """ Find all the additional columns for the table"""
     cols = basic_cols
 
@@ -135,6 +137,8 @@ def resolve_additional_cols(include_ex_stimulus, include_in_stimulus, include_ve
         cols = cols + vi_phase_analysis_cols
     if include_spike_phase:
         cols = cols + spike_phase_analysis_cols
+    if include_vm_phase_analysis:
+        cols = cols + vm_phase_analysis_cols
 
     return cols
 
@@ -203,13 +207,14 @@ def read_table_h5(fpath):
         if 'include_vi_phase_analysis' in f5.attrs:
             extra_cols = extra_cols + vi_phase_analysis_cols
 
+        if 'include_vm_phase_analysis' in f5.attrs:
+            extra_cols = extra_cols + vm_phase_analysis_cols
+
         if 'include_spike_phase' in f5.attrs:
             extra_cols = extra_cols + spike_phase_analysis_cols
 
-
         table = build_df(basic_cols + extra_cols)
         un_touched_data_cols = (basic_cols + extra_cols)
-
         ids = f5['ids'].value
 
         if set(['spike_tt', 'spike_phase']).issubset(un_touched_data_cols):
@@ -230,7 +235,7 @@ def read_table_h5(fpath):
                 new_spike_phase_index = data_cols.index('spike_phase')
                 data_cols.pop(new_spike_phase_index)
 
-
+            # print data_cols
             data = [f5[c][i] for c in data_cols]
             # place spikes in correct position
             if set(['spike_tt','spike_phase']).issubset(un_touched_data_cols):
@@ -238,11 +243,27 @@ def read_table_h5(fpath):
                 data.insert(spike_phase_index, spike_phase_data[rid].value)
 
             table.loc[rid] = data
+        table['spike_tt_A'] = np.NAN
+        table['spike_phase_A'] = np.NAN
+        table['spike_tt_A'] = table['spike_tt_A'].astype(object)
+        table['spike_phase_A'] = table['spike_phase_A'].astype(object)
+
+        for index, row in table.iterrows():
+            table['spike_tt_A'][index] = tpl.filter_list(row['in_amp(pA)'], row['ex_delay(ms)'], row['ex_dur(ms)'],
+                                                     row['spike_tt'], row['spike_tt'])
+            table['spike_phase_A'][index] = tpl.filter_list(row['in_amp(pA)'], row['ex_delay(ms)'], row['ex_dur(ms)'],
+                                                        row['spike_tt'], row['spike_phase'])
+
         table['num_spikes'] = table.apply(lambda row: len(row['spike_tt']), axis=1)
-        table['spike_tt_A'] = table.apply(tpl.filter_list, varname1="spike_tt", varname2="spike_tt", axis=1)
-        table['spike_phase_A'] = table.apply(tpl.filter_list, varname1="spike_tt", varname2="spike_phase", axis=1)
         table['num_spikes_A'] = table.apply(lambda row: len(row['spike_tt_A']), axis=1)
-        table['spike_phase_A_corrected'] = table.apply(tpl.phase_correction, axis=1)
+        table['spike_phase_A_corrected'] = table['spike_phase_A'].apply(tpl.phase_correction)
+
+
+        # table['num_spikes'] = table.apply(lambda row: len(row['spike_tt']), axis=1)
+        # table['spike_tt_A'] = table.apply(tpl.filter_list, varname1="spike_tt", varname2="spike_tt", axis=1)
+        # table['spike_phase_A'] = table.apply(tpl.filter_list, varname1="spike_tt", varname2="spike_phase", axis=1)
+        # table['num_spikes_A'] = table.apply(lambda row: len(row['spike_tt_A']), axis=1)
+        # table['spike_phase_A_corrected'] = table.apply(tpl.phase_correction, axis=1)
     return table
 
 

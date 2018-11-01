@@ -779,7 +779,7 @@ def plot_fft(sig_fft, sample_freq , ax=None):
 
 #################################################
 
-def plot_nwb_trace(v_trace, sampling_freq, title=None, ax=None):
+def plot_nwb_trace(v_trace, sampling_freq, title=None, ax=None, label=None):
     if ax is None:
         ax = plt.figure(figsize=(20,5))
         ax = plt.subplot(111)
@@ -788,10 +788,10 @@ def plot_nwb_trace(v_trace, sampling_freq, title=None, ax=None):
     dt = 1. / (sampling_freq * 1000)
     tstop = N * dt
     time = np.arange(0, tstop, dt)
-    ax.plot(time, v_trace)
+    ax.plot(time, v_trace, label=label)
     ax.set_xlabel('Time(s)', size=15)
     ax.set_ylabel('Voltage(mV)', size =15)
-    ax.legend(loc='best')
+    ax.legend(loc='best', fontsize=15)
     if title:
         ax.set_title(title, size= 20)
     return ax
@@ -806,19 +806,29 @@ def get_cut_window(in_amp, ex_delay, ex_dur):
         t_end = ex_delay + ex_dur - 2000
     return t_start, t_end
 
-
-def filter_list(row, **kwargs):
-    in_amp = row['in_amp(pA)']
-    ex_delay = row['ex_delay(ms)']
-    ex_dur = row['ex_dur(ms)']
+def filter_list(in_amp, ex_delay, ex_dur,var1_list, var2_list):
     t_start , t_end = get_cut_window(in_amp, ex_delay, ex_dur)
-    varname1 = kwargs['varname1']
-    varname2 = kwargs['varname2']
-    ndx = np.where((row[varname1] >= t_start) & (row[varname1] <= t_end))
-    l = [row[varname2][i] for i in ndx]
+    ndx = np.where((var1_list >= t_start) & (var1_list <= t_end))
+    l = [var2_list[i] for i in ndx]
     flat_list = [item for sublist in l for item in sublist]
     return flat_list
 
-def phase_correction(row):
-    temp = [x + (1.5 * np.pi) for x in row['spike_phase_A']]
-    return [(x/(2*np.pi) - int(x/(2*np.pi))) * 2 * np.pi for x in temp]
+def phase_correction(spike_phase_A_list):
+        temp = [x + (1.5 * np.pi) for x in spike_phase_A_list]
+        return [(x / (2 * np.pi) - int(x / (2 * np.pi))) * 2 * np.pi for x in temp]
+
+# def filter_list(row, **kwargs):
+#     in_amp = row['in_amp(pA)']
+#     ex_delay = row['ex_delay(ms)']
+#     ex_dur = row['ex_dur(ms)']
+#     t_start , t_end = get_cut_window(in_amp, ex_delay, ex_dur)
+#     varname1 = kwargs['varname1']
+#     varname2 = kwargs['varname2']
+#     ndx = np.where((row[varname1] >= t_start) & (row[varname1] <= t_end))
+#     l = [row[varname2][i] for i in ndx]
+#     flat_list = [item for sublist in l for item in sublist]
+#     return flat_list
+
+# def phase_correction(row):
+#     temp = [x + (1.5 * np.pi) for x in row['spike_phase_A']]
+#     return [(x/(2*np.pi) - int(x/(2*np.pi))) * 2 * np.pi for x in temp]

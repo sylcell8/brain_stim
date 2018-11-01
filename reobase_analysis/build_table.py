@@ -20,10 +20,6 @@ from isee_engine.bionet.stimxwaveform import iclamp_waveform_factory
 from allensdk.ephys.ephys_extractor import EphysSweepFeatureExtractor
 from neuroanalysis.miesnwb import MiesNwb
 
-#import cProfile, pstats, io
-#pr = cProfile.Profile()
-#pr.enable()
-
 """
 Script to build h5 files containing organized run info for all runs of a particular amplitude
 Will include all electrodes. Has no overwrite protection.
@@ -35,11 +31,11 @@ If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 
 def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_data = False, include_ex_stimulus_data = True,
                      include_in_stimulus_data = True, include_vext_phase_analysis = True,
-                     include_vi_phase_analysis = True, include_spike_phase = True):
+                     include_vi_phase_analysis = True, include_spike_phase = True, include_vm_phase_analysis= True):
 
     experimental_cols = xu.resolve_additional_cols(include_ex_stimulus_data, include_in_stimulus_data,
                                                    include_vext_phase_analysis, include_vi_phase_analysis,
-                                                   include_spike_phase)
+                                                   include_spike_phase, include_vm_phase_analysis)
     print "Building table for experiment:{}_{}".format(exp_id, sampling_freq)
     table = xu.build_df(experimental_cols)
     # print experimental_cols
@@ -109,7 +105,9 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
                 run_id = xu.resolve_run_id(sweep, exel, ex_amp, ex_frequency, in_amp)
 
                 if sweep != s: # We just update the run_id and frequency
-                    aa, ex_frequency, bb, cc = extract_stimulus_prop(nwb, conf, s, stim_el_id,stimulus_type="ex")
+                    new_ex_amp, ex_frequency, ex_delay, ex_dur = extract_stimulus_prop(nwb, conf, s, stim_el_id,stimulus_type="ex")
+                    ex_delay = ex_delay * 1000  # in ms
+                    ex_dur = ex_dur * 1000  # in ms
                     run_id = xu.resolve_run_id(sweep, exel, ex_amp, ex_frequency, in_amp)
                     run_id = str(s) + "_" + run_id
 
@@ -121,7 +119,7 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
                     data = write_data_rows(sweep, exel, stim_el_id, in_el_id, distance, spike_tt, ex_amp, ex_frequency,
                                        ex_dur, ex_delay , in_amp,in_dur, in_delay,subthreshold, control,vext_trace,dt,
                                        vi_trace, include_ex_stimulus_data, include_in_stimulus_data, include_vext_phase_analysis,
-                                       include_vi_phase_analysis, include_spike_phase)
+                                       include_vi_phase_analysis, include_spike_phase, include_vm_phase_analysis)
 
 
                     table.loc[run_id] = list(itertools.chain.from_iterable(data))
@@ -131,9 +129,12 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
                     raise
             i += 1
 
-    if include_vext_phase_analysis:
+    if include_vi_phase_analysis:
             table.loc[table["vi_phase"] < 0, "vi_phase"] = table["vi_phase"] + 360
+    if include_vext_phase_analysis:
             table.loc[table["vext_phase"] < 0, "vext_phase"] = table["vext_phase"] + 360
+    if include_vm_phase_analysis:
+            table.loc[table["vm_phase"] < 0, "vm_phase"] = table["vm_phase"] + 360
 
     filename = xu.get_table_filename(exp_id, sampling_freq)
     print 'Data collected. Writing to {}...'.format(filename)
@@ -143,6 +144,7 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
                                             'has_in_stimulus_data': include_in_stimulus_data,
                                             'include_vext_phase_analysis': include_vext_phase_analysis,
                                             'include_vi_phase_analysis':include_vi_phase_analysis,
+                                            'include_vm_phase_analysis':include_vm_phase_analysis,
                                             'include_spike_phase':include_spike_phase})
 
     print 'Done.'
@@ -150,7 +152,7 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
 
 def write_data_rows(sweep, exel, stim_el_id, in_el_id, distance, spike_tt, ex_amp, ex_frequency, ex_dur, ex_delay , in_amp,
                     in_dur, in_delay,subthreshold, control,vext_trace,dt, vi_trace, include_ex_stimulus_data, include_in_stimulus_data,
-                    include_vext_phase_analysis, include_vi_phase_analysis, include_spike_phase):
+                    include_vext_phase_analysis, include_vi_phase_analysis, include_spike_phase, include_vm_phase_analysis):
 
     data = [[sweep, exel, stim_el_id, in_el_id, distance], [spike_tt]]
     if include_ex_stimulus_data:
@@ -172,8 +174,23 @@ def write_data_rows(sweep, exel, stim_el_id, in_el_id, distance, spike_tt, ex_am
         spike_phase_data = extract_spike_phase_expr(subthreshold, spike_tt, vext_trace, ex_delay, ex_dur, dt)
         data = data + [spike_phase_data]
 
+    if include_vm_phase_analysis:
+        if subthreshold and distance == 50:
+            vm_trace = vi_trace - vext_trace
+            avg_vm = get_avg_v(vm_trace, in_delay, in_dur, dt)
+            vm_phase_analysis_data = extract_v_phase_analysis_expr(subthreshold, control, 'vm', vm_trace, ex_delay, ex_dur,
+                                                               ex_frequency, dt)
+            vm_phase_analysis_data = vm_phase_analysis_data + [avg_vm]
+        else:
+            vm_phase_analysis_data = [np.NAN, np.NAN, np.NaN]
+        data = data + [vm_phase_analysis_data]
+
     return  data
 
+def get_avg_v(vm_trace, delay, dur, dt):
+    t_start = int((delay) / dt)
+    t_end = int((delay + dur) / dt)
+    return np.mean(vm_trace[t_start:t_end])
 
 def get_related_sweeps_to_control(control_sweep, sweeps):
     ndx = sweeps.index(control_sweep)
@@ -192,7 +209,6 @@ def extract_timeseries_of_experiment(total_sweep_time, sampling_freq):
     dt = 1. / (sampling_freq * 1000)
     time = np.arange(0, total_sweep_time, dt)
     return time
-
 
 
 def extract_v_phase_analysis_expr(subthreshold, control, var_name ,var_trace, ex_delay, ex_dur, freq, dt):
