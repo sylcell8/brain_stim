@@ -23,11 +23,14 @@ from neuroanalysis.miesnwb import MiesNwb
 """
 Script to build h5 files containing organized run info for all runs of a particular amplitude
 Will include all electrodes. Has no overwrite protection.
-
-Will attempt to include vm information if the stim type is DC. This is only done for DC because it only makes sense for 
-a constant input without external input. This allows us to look at the subthreshold response.
-If the cell is active (> 1 spikes) then the post-stim vm value is NaN
 """
+
+##########Building experimental table###############
+
+# Each table contains stimulus data, vext_phase
+# analysis, and all spike analysis, if you dont
+# want any of these parts simply set it to false
+# on the command line
 
 def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_data = False, include_ex_stimulus_data = True,
                      include_in_stimulus_data = True, include_vext_phase_analysis = True,
@@ -37,8 +40,9 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
                                                    include_vext_phase_analysis, include_vi_phase_analysis,
                                                    include_spike_phase, include_vm_phase_analysis)
     print "Building table for experiment:{}_{}".format(exp_id, sampling_freq)
+    ####### First we generate an empty data frame with all the expected col names #######
     table = xu.build_df(experimental_cols)
-    # print experimental_cols
+    ####### We read all the necessary info from the config file #######
     original_config = xu.get_config_path(exp_id, sampling_freq, saved_data)
     config.print_resolved(config.build(original_config))
     resolved_config_path = xu.get_config_resolved_path(exp_id, sampling_freq, saved_data)
@@ -60,6 +64,7 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
 
     sweeps = conf['sweep_numbers']
     control_sweeps = conf['control_sweep_numbers']
+    number_of_sweeps_after_control = conf['number_of_sweeps_after_control']
 
     for sweep in sweeps:
         subthreshold = True
@@ -71,7 +76,7 @@ def build_expr_table(exp_id, sampling_freq, lowcut_freq, highcut_freq, saved_dat
         if ex_amp == 0 :
             control = True
             if not sweep in control_sweeps: raise ValueError('it is a control sweep but its number is not inside the control list. Check sweep: {}'.format(sweep))
-            related_sweeps = get_related_sweeps_to_control(sweep, sweeps)
+            related_sweeps = get_related_sweeps_to_control(sweep, sweeps, number_of_sweeps_after_control)
             print "For control sweep:", sweep, "these are related sweeps with different frequencies:", related_sweeps
         else:
             related_sweeps = [sweep]
@@ -192,9 +197,9 @@ def get_avg_v(vm_trace, delay, dur, dt):
     t_end = int((delay + dur) / dt)
     return np.mean(vm_trace[t_start:t_end])
 
-def get_related_sweeps_to_control(control_sweep, sweeps):
+def get_related_sweeps_to_control(control_sweep, sweeps, number_of_sweeps_after_control):
     ndx = sweeps.index(control_sweep)
-    return [sweeps[i] for i in [ndx+1, ndx+2, ndx+3, ndx+4]]
+    return [sweeps[i] for i in [ndx+j for j in range(1, number_of_sweeps_after_control+1)]]
 
 
 def extract_timeseries_from_h5(cvh5, var):
@@ -312,6 +317,14 @@ def extract_spike_phase_expr(subthreshold, spike_tt, var_trace, ex_delay, ex_dur
         spike_phase = [df.loc[index]['spike_phase'] for index in ndx]
 
     return [spike_phase]
+
+
+##########Building simulation table###############
+
+# Each table contains stimulus data, vext_phase
+# analysis, and all spike analysis, if you dont
+# want any of these parts simply set it to false
+# on the command line
 
 
 def build_sin_dc(cell_gid, input_type, stim_type, model_type, inputs, trial, include_delta_vm=True,

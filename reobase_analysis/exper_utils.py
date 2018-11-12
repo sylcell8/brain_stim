@@ -45,6 +45,16 @@ class ElectrodeType(Name):
 #     Paths / filenames
 #
 #################################################
+
+def concat_path(*args):
+    """ Join paths together by parts, worry-free """
+    root = args[0]
+    is_abs_path = root[0] == '/'
+    clean = [str(s).strip('/') for s in args]
+    if is_abs_path:
+        clean[0] = '/' + clean[0]
+    return '/'.join(clean)
+
 def get_dir_root(saved_data):
     """ For dealing with different netweork locations on Mac/Linux """
     network_root = '/allen'
@@ -296,72 +306,63 @@ def read_trace_from_nwb(exp_id, sampling_freq,  sweep, el_id, saved_data):
 
 
 
-def format_sweep(sweep_number):
-    """ Formatting for el number for cleaner organization. Idempotent """
-    return str(sweep_number).zfill(5)
-
-
-def concat_path(*args):
-    """ Join paths together by parts, worry-free """
-    root = args[0]
-    is_abs_path = root[0] == '/'
-    clean = [str(s).strip('/') for s in args]
-    if is_abs_path:
-        clean[0] = '/' + clean[0]
-    return '/'.join(clean)
-
-def get_param_dir(saved_data, *args):
-    network_root = get_dir_root(saved_data)
-    return concat_path(network_root, 'aibs/mat/sooyl/parameter_sheets/', *args)
-
-# def get_nwb_dir(sampling_freq, saved_data, *args): #Sampling frequency should be given in KHz
-#     """ Get dir containing runs for given params """
+# def format_sweep(sweep_number):
+#     """ Formatting for el number for cleaner organization. Idempotent """
+#     return str(sweep_number).zfill(5)
+#
+# 
+# def get_param_dir(saved_data, *args):
 #     network_root = get_dir_root(saved_data)
-#     nwb_folder = resolve_nwb_folder(sampling_freq)
-#     return concat_path(network_root, 'aibs/mat/sooyl/', nwb_folder, *args)
-
-def get_param_filename(exp_id,sampling_freq):
-    return '{}_{}_parameters.xlsx'.format(exp_id, sampling_freq)
-
-
-
-def get_nwb_file_path(exp_id, sampling_freq, saved_data):
-    parts = [get_nwb_dir(sampling_freq, saved_data) +'/' + get_nwb_filename(exp_id,sampling_freq)]
-    return "".join(parts)
-
-def get_param_file_path(exp_id, sampling_freq, saved_data):
-    parts = [get_param_dir(saved_data) +'/' + get_param_filename(exp_id,sampling_freq)]
-    return "".join(parts)
-
-
-
-def get_electrode_id(which_electrode, exp_id, sampling_freq, saved_data):
-    param_df = read_param_file(exp_id, sampling_freq, saved_data)
-    electrode_id = [x.encode('ascii','ignore') for x  in param_df[which_electrode].unique().tolist() if x is not np.nan]
-    if len(electrode_id) > 1:
-        print "ERROR, in the electrode id column, there should be only one label"
-    else:
-        return electrode_id[0]
-
-def get_sweep_column_name(sweep_number, which_electrode, exp_id, sampling_freq, saved_data):
-    electrode_id = get_electrode_id(which_electrode, exp_id, sampling_freq, saved_data)
-    parts = ['data' , format_sweep(sweep_number) , electrode_id]
-    sweep_col_name =  '_'.join(parts)
-    parts = [ 'acquisition/timeseries',sweep_col_name, 'data']
-    return '/'.join(parts)
-
-
-
-def read_nwb_file(exp_id, sampling_freq, saved_data):
-    path = get_nwb_file_path(exp_id, sampling_freq, saved_data)
-    cvh5 = h5.File(path)
-    return cvh5
-
-def read_param_file(exp_id, sampling_freq, saved_data):
-    path = get_param_file_path(exp_id, sampling_freq, saved_data)
-    return pd.read_excel(path)
-
-def read_timeseries(sweep_number, which_electrode, exp_id, sampling_freq, saved_data):
-    cvh5 = read_nwb_file(exp_id, sampling_freq, saved_data)
-    sweep_column_name = get_sweep_column_name(sweep_number, which_electrode, exp_id, sampling_freq, saved_data)
-    return cvh5[sweep_column_name].value
+#     return concat_path(network_root, 'aibs/mat/sooyl/parameter_sheets/', *args)
+#
+# # def get_nwb_dir(sampling_freq, saved_data, *args): #Sampling frequency should be given in KHz
+# #     """ Get dir containing runs for given params """
+# #     network_root = get_dir_root(saved_data)
+# #     nwb_folder = resolve_nwb_folder(sampling_freq)
+# #     return concat_path(network_root, 'aibs/mat/sooyl/', nwb_folder, *args)
+#
+# def get_param_filename(exp_id,sampling_freq):
+#     return '{}_{}_parameters.xlsx'.format(exp_id, sampling_freq)
+#
+#
+#
+# def get_nwb_file_path(exp_id, sampling_freq, saved_data):
+#     parts = [get_nwb_dir(sampling_freq, saved_data) +'/' + get_nwb_filename(exp_id,sampling_freq)]
+#     return "".join(parts)
+#
+# def get_param_file_path(exp_id, sampling_freq, saved_data):
+#     parts = [get_param_dir(saved_data) +'/' + get_param_filename(exp_id,sampling_freq)]
+#     return "".join(parts)
+#
+#
+#
+# def get_electrode_id(which_electrode, exp_id, sampling_freq, saved_data):
+#     param_df = read_param_file(exp_id, sampling_freq, saved_data)
+#     electrode_id = [x.encode('ascii','ignore') for x  in param_df[which_electrode].unique().tolist() if x is not np.nan]
+#     if len(electrode_id) > 1:
+#         print "ERROR, in the electrode id column, there should be only one label"
+#     else:
+#         return electrode_id[0]
+#
+# def get_sweep_column_name(sweep_number, which_electrode, exp_id, sampling_freq, saved_data):
+#     electrode_id = get_electrode_id(which_electrode, exp_id, sampling_freq, saved_data)
+#     parts = ['data' , format_sweep(sweep_number) , electrode_id]
+#     sweep_col_name =  '_'.join(parts)
+#     parts = [ 'acquisition/timeseries',sweep_col_name, 'data']
+#     return '/'.join(parts)
+#
+#
+#
+# def read_nwb_file(exp_id, sampling_freq, saved_data):
+#     path = get_nwb_file_path(exp_id, sampling_freq, saved_data)
+#     cvh5 = h5.File(path)
+#     return cvh5
+#
+# def read_param_file(exp_id, sampling_freq, saved_data):
+#     path = get_param_file_path(exp_id, sampling_freq, saved_data)
+#     return pd.read_excel(path)
+#
+# def read_timeseries(sweep_number, which_electrode, exp_id, sampling_freq, saved_data):
+#     cvh5 = read_nwb_file(exp_id, sampling_freq, saved_data)
+#     sweep_column_name = get_sweep_column_name(sweep_number, which_electrode, exp_id, sampling_freq, saved_data)
+#     return cvh5[sweep_column_name].value
