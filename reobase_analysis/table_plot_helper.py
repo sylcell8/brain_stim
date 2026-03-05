@@ -782,7 +782,7 @@ def plot_fft(sig_fft, sample_freq , ax=None):
 def plot_nwb_trace(v_trace, sampling_freq, title=None, ax=None, label=None):
     if ax is None:
         ax = plt.figure(figsize=(20,5))
-        ax = plt.subplot(111)
+        ax = plt.subplot(111)         
 
     N = len(v_trace)
     dt = 1. / (sampling_freq * 1000)

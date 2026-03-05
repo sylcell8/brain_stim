@@ -1,0 +1,59 @@
+import sys
+sys.path.append('/home/jungl/isee_engine/isee_engine') 
+import nwb
+from collections import defaultdict
+import h5py
+
+def read_LGN_activity(num):
+	sel_trial='trial_'+str(num)
+	#file_name='/home/jungl/Desktop/anton_flash_example.nwb'
+	file_name='/data/mat/iSee_temp_shared/external_inputs/anton_TouchOfEvil_frames_3600_to_3750_example/anton_TouchOfEvil_frames_3600_to_3750.nwb'
+	fs=h5py.File(file_name,'r')
+	st_objs=nwb.SpikeTrain.get_processing(fs,sel_trial)
+
+	return st_objs
+
+
+def read_conns():
+	fc=h5py.File('/home/jungl/Desktop/lgn2v1.h5')
+	indptr=fc['indptr']
+	cell_size=len(indptr)-1
+	print cell_size
+	conns={}
+	source=fc['src_gids']
+	for xin in xrange(cell_size):
+		conns[str(xin)]=list(source[indptr[xin]:indptr[xin+1]])
+
+	return conns
+
+
+'''
+The followling part is to generate 120 cortical neurons and introduce the spikes from the nwb file. 
+import nest
+import numpy as np
+import nest.raster_plot
+import pylab
+
+lgn_size=9000 # temporary values
+LGN=nest.Create('spike_generator',lgn_size)
+neuron_list=nest.Create('iaf_psc_exp',120)
+sd=nest.Create('spike_detector')
+nest.SetStatus(LGN,{'allow_offgrid_spikes':True})
+conn_dict = {'rule': 'all_to_all'}
+syn_dict = {'model': 'static_synapse',
+            'weight':{'distribution': 'normal_clipped', 'low': 0.0, 'mu': 1000.0, 'sigma': 1.0},
+            'delay': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5}
+           }
+for xin in xrange(lgn_size):
+	nest.SetStatus([LGN[xin]],{'spike_times':np.sort(spks[xin].data[:])})
+for xi,xin in enumerate(neuron_list):
+	temp_source=[]
+	for yin in conns[str(xi)]:
+		temp_source.append(yin)
+	nest.Connect(temp_source,[xin],conn_dict,syn_dict)
+nest.Connect(neuron_list,sd)
+nest.Simulate(1000.0)
+nest.raster_plot.from_device(sd, hist=True)
+pylab.show()
+'''
+#end of script

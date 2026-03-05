@@ -1,0 +1,165 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from collections import defaultdict
+import nest
+import nest.raster_plot
+import json
+import pandas as pd
+import ThalamoCortical
+import test
+import convert
+
+
+def split(configure):
+	'''
+	Compute necessary number of block trials, the length of block simulation and the simulation length of the last block run, if necessary.
+	Parameters
+	----------
+	configure object
+	Returns
+	-------
+	n: the necessary number of block simulation runs.
+	res: the simulation length of the last block run. If it is zero, all simulation have the same length.
+	data_res: the simulation time of each simulation block according to the given the size of block (in terms of data points)	
+	  
+	'''
+	if configure.block==True:
+		data_res=configure.blocksize*configure.sim_dt
+		fn=configure.sim_duration/data_res
+		n=int(fn)
+		res=fn-n
+	else:
+		n=-1
+		res=-1
+		data_res=-1
+	return n,res,data_res
+		
+
+
+
+class network:
+	'''
+	This creates the NEST object via pynest (the python-NEST interface)
+	'''
+	built=False
+	connected=False
+
+	def __init__(self,coordinates,node,model,conn_dict,configure):
+		'''
+		Intialize NEST kernerl according to the info
+
+		Parameters
+		----------
+		coordinates: x,y and z coordinates of cells. This info is not currently used. We keep this info for the future use. 
+		node: Each row specifies node_id, neuron type and coordinates
+		model: Each row specifies model_name, "point", json parameter file name
+
+		'''
+		self.configure=configure
+		nest.ResetKernel()
+		nest.SetKernelStatus({"resolution":self.configure.sim_dt, "overwrite_files":self.configure.overwrite_flag,"print_time":True})
+		self.modelparam_list=defaultdict(list)
+		
+		self.dict_coordinates=coordinates
+		self.node_info=node
+		self.model_info=model
+		self.model_mapping={}
+		self.conns_dict=conn_dict
+		for xin in xrange(len(self.model_info)):
+			self.model_mapping[self.model_info[xin,1]]=[self.model_info[xin,2],self.model_info[xin,3]]
+		for xin in xrange(len(self.node_info)):
+			neuron_label=self.node_info[xin,1]	
+			neuron_model=self.model_mapping[neuron_label][0]
+			param_filename=self.model_mapping[neuron_label][1]
+			fp=open(self.configure.model_dir+'/'+param_filename,'r')
+			self.modelparam_list[neuron_label]=json.load(fp)
+			fp.close()
+		self.sd=nest.Create("spike_detector",1) # let's see how they behave
+		nest.SetStatus(self.sd,{'label':self.configure.output_dir+'/spikes','withtime':True,'withgid':True,"to_file": True})
+		self.noise=nest.Create("poisson_generator",1,{"rate":1000.0}) # provide some external input spikes
+		nest.CopyModel('static_synapse','sync',{'weight':0.0,'delay':1.5})
+
+	def build(self):
+		'''
+		build NEST network
+		'''
+		if self.built==True: return
+		self.neuron_list=[]
+		for xin in xrange(len(self.node_info)):
+			neuron_label=self.node_info[xin,1]	
+			neuron_model=self.model_mapping[neuron_label][0]
+			paramdict=self.modelparam_list[neuron_label]
+			self.neuron_list.append(nest.Create(neuron_model,1,paramdict))
+
+		
+		for xin in self.neuron_list:
+			nest.Connect(self.noise,[xin[0]],syn_spec='sync')
+			nest.Connect([xin[0]],self.sd)
+		#now input LGN cell outputs
+		lgn_size=9000 # temporary measure
+		spks=ThalamoCortical.read_LGN_activity(1) # let's just take one of random trial 
+		conns=ThalamoCortical.read_conns() #
+		self.LGN=nest.Create('spike_generator',lgn_size)
+		nest.SetStatus(self.LGN,{'allow_offgrid_spikes':True})
+		for xin in xrange(lgn_size):
+			nest.SetStatus([self.LGN[xin]],{'spike_times':np.sort(spks[xin].data[:])})
+		conn_dict = {'rule': 'all_to_all'}
+		
+		for xin in xrange(lgn_size):
+			nest.SetStatus([self.LGN[xin]],{'spike_times':np.sort(spks[xin].data[:])})
+		for xi,xin in enumerate(self.neuron_list):
+			target_type=self.node_info[xi,1]
+			conn_keys='lgn-'+target_type
+			mean, delay=self.conns_dict[conn_keys]
+			syn_dict = {'model': 'static_synapse','weight':{'distribution': 'normal_clipped', 'low': 0.0, 'mu': float(mean), 'sigma': 1.0}, 'delay':float(delay)}
+			temp_source=[]
+			for yin in conns[str(xi)]:
+				temp_source.append(yin)
+			nest.Connect(temp_source,[xin[0]],conn_dict,syn_dict)
+		pre,params=convert.gen_recurrent_h5(120,self.neuron_list[0][0])
+		nest.DataConnect(pre,params,model='static_synapse')
+		self.built=True
+	def run(self,simtime=1000.):
+		'''
+		run the simulation. It calls the another function named blockrun if block run is desired.
+
+		Parameters
+		----------
+		simulation time: the total simulation time. The default value is 1000 msec
+
+		'''
+		self.simtime=simtime
+		if not self.built:
+			print "building"
+            		self.build()
+		n,res,data_res=split(self.configure)
+		print n,res,data_res
+		if n>0:
+			for r in xrange(n):
+				self.blockrun(data_res)
+		if res>0:
+			blockrun(res*self.configure.sim_dt)
+		if n<0:
+					
+			nest.Simulate(self.simtime)
+		nest.raster_plot.from_device(self.sd, hist=True)
+		plt.show()
+	def blockrun(self,time):
+		'''
+		run simulations block-by-blocks export data accumulated spike times to 'spike.out'
+
+		Parameters
+		----------
+		time: the length of a signle block of simulation (msec)
+		
+		'''
+		nest.Simulate(time)
+		spk_data=nest.GetStatus(self.sd)[0]
+		spk_times=spk_data['events']['times']
+		spk_senders=spk_data['events']['senders']
+		spk_senders.astype(int)
+		spk_output=np.stack((spk_times,spk_senders),axis=1)
+		np.savetxt(self.configure.output_dir+'/spike.out',spk_output)
+
+	
+		

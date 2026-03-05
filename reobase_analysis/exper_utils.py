@@ -57,7 +57,7 @@ def concat_path(*args):
 
 def get_dir_root(saved_data):
     """ For dealing with different netweork locations on Mac/Linux """
-    network_root = '/allen'
+    network_root = '//allen'
     if os.path.isdir('/Volumes'):
         network_root = '/Volumes'
     if saved_data:
@@ -86,15 +86,14 @@ def get_nwb_filename(exp_id, sampling_freq):
 
 def get_config_resolved_path(exp_id, sampling_freq, saved_data):
     network_root = get_dir_root(saved_data)
-    return concat_path(network_root, 'aibs/mat/sooyl/result_tables',   str(exp_id) + "_" + str(sampling_freq) + '_resolved.json')
-
+    return "/".join([network_root, 'aibs/mat/sooyl/result_tables',   str(exp_id) + "_" + str(sampling_freq) + '_resolved.json'])
 
 def get_config_path(exp_id, sampling_freq, saved_data): #Sampling frequency should be given in KHz
     """ Get dir containing runs for given params """
     network_root = get_dir_root(saved_data)
     keys = resolve_global_id(exp_id, sampling_freq)
     keys = keys + '.json'
-    return concat_path(network_root, 'aibs/mat/sooyl/Stimulus_Item_Values', keys)
+    return "/".join([network_root, 'aibs/mat/sooyl/Stimulus_Item_Values', keys])
 
 def resolve_global_id(exp_id, sampling_freq):
     parts = [exp_id , str(sampling_freq)]
@@ -102,11 +101,10 @@ def resolve_global_id(exp_id, sampling_freq):
 
 def get_table_dir(filename, saved_data):
     root_dir = get_dir_root(saved_data)
-    return concat_path(root_dir,'aibs/mat/sooyl/result_tables/', filename)
+    return "/".join([root_dir,'aibs/mat/sooyl/result_tables/', filename])
 
 def get_table_filename(exp_id, sampling_freq):
     return 'table_{}_{}.h5'.format(exp_id, sampling_freq)
-
 
 def resolve_nwb_folder(sampling_freq):
     parts = [str(sampling_freq) + 'KHz_nwb_files' ]
@@ -116,7 +114,7 @@ def get_nwb_path_from_exp_id(exp_id, sampling_freq, saved_data):
     filename = get_nwb_filename(exp_id,sampling_freq)
     folder = resolve_nwb_folder(sampling_freq)
     root_dir = get_dir_root(saved_data)
-    return concat_path(root_dir, 'aibs/mat/sooyl/',folder ,filename)
+    return "/".join([root_dir, 'aibs/mat/sooyl/',folder ,filename])
 
 #################################################
 #
